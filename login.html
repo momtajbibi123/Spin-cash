@@ -1,0 +1,328 @@
+
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Auth Screen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#FFD700", 
+            "background-light": "#1E1E1E", 
+            "background-dark": "#121212", 
+          },
+          fontFamily: {
+            "display": ["Manrope", "sans-serif"]
+          },
+        },
+      },
+    }
+</script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    body {
+      min-height: 100vh;
+    }
+    
+    /* Smooth Height Transition */
+    .input-group {
+        transition: all 0.4s ease-in-out;
+        overflow: hidden;
+        max-height: 100px; 
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .input-group.hidden-field {
+        max-height: 0;
+        opacity: 0;
+        margin: 0;
+        padding: 0;
+        transform: translateY(-10px);
+    }
+
+    /* Floating Label Styles */
+    .floating-input-container {
+        position: relative;
+    }
+    .floating-input {
+        padding-top: 1.5rem;
+        padding-bottom: 0.5rem;
+    }
+    .floating-label {
+        position: absolute;
+        left: 1rem;
+        top: 1rem;
+        color: #A9A9A9;
+        font-size: 1rem;
+        transition: all 0.2s ease-out;
+        pointer-events: none;
+    }
+    .floating-input:focus ~ .floating-label,
+    .floating-input:not(:placeholder-shown) ~ .floating-label {
+        top: 0.25rem;
+        font-size: 0.75rem;
+        color: #FFD700;
+    }
+</style>
+</head>
+<body class="bg-background-dark font-display text-[#F5F5F5]">
+<div class="relative flex h-auto min-h-screen w-full flex-col bg-background-dark">
+    
+    <!-- Header -->
+    <div class="flex items-center bg-background-dark p-4 pb-2 sticky top-0 z-10">
+        <button class="flex size-10 shrink-0 items-center justify-center rounded-full hover:bg-white/10 transition-colors" onclick="history.back()">
+            <!-- SVG Back Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="#F5F5F5">
+                <path d="M400-80 0-480l400-400 71 71-329 329 329 329-71 71Z"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="flex flex-1 flex-col px-4 pt-6 pb-8">
+        <main class="flex flex-col flex-1 justify-center">
+            
+            <!-- Title -->
+            <h1 id="page-title" class="tracking-light text-[32px] font-bold leading-tight text-left mb-2 transition-all duration-300">Create Account</h1>
+            <p id="page-subtitle" class="text-[#A9A9A9] text-base font-normal leading-normal pb-8 transition-all duration-300">Sign up to get started!</p>
+
+            <!-- Form -->
+            <div class="flex flex-col gap-4">
+                
+                <!-- Name Field (Hidden in Login) -->
+                <div class="input-group" id="name-group">
+                    <div class="floating-input-container">
+                        <input type="text" id="name" class="floating-input form-input w-full rounded-lg text-[#F5F5F5] bg-background-light border border-[#3b4754] focus:border-primary focus:ring-0 h-14 px-4 placeholder-transparent" placeholder="Name">
+                        <label for="name" class="floating-label">Full Name</label>
+                    </div>
+                </div>
+
+                <!-- Mobile Number (Hidden in Login) -->
+                <div class="input-group" id="mobile-group">
+                    <div class="floating-input-container">
+                        <input type="tel" id="mobile" class="floating-input form-input w-full rounded-lg text-[#F5F5F5] bg-background-light border border-[#3b4754] focus:border-primary focus:ring-0 h-14 px-4 placeholder-transparent" placeholder="Mobile">
+                        <label for="mobile" class="floating-label">Mobile Number</label>
+                    </div>
+                </div>
+
+                <!-- Email Field (Always Visible) -->
+                <div class="input-group" id="email-group">
+                    <div class="floating-input-container">
+                        <input type="email" id="email" class="floating-input form-input w-full rounded-lg text-[#F5F5F5] bg-background-light border border-[#3b4754] focus:border-primary focus:ring-0 h-14 px-4 placeholder-transparent" placeholder="Email">
+                        <label for="email" class="floating-label">Email Address</label>
+                    </div>
+                </div>
+
+                <!-- Password (Always Visible) -->
+                <div class="input-group">
+                    <div class="floating-input-container">
+                        <input type="password" id="password" class="floating-input form-input w-full rounded-lg text-[#F5F5F5] bg-background-light border border-[#3b4754] focus:border-primary focus:ring-0 h-14 px-4 pr-12 placeholder-transparent" placeholder="Password">
+                        <label for="password" class="floating-label">Password</label>
+                        
+                        <!-- Toggle Password Visibility Button -->
+                        <button class="absolute right-3 top-1/2 -translate-y-1/2 text-[#A9A9A9] hover:text-white transition-colors" onclick="togglePassword()">
+                            <!-- Eye Icon (SVG) -->
+                            <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor">
+                                <path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-200Z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Action Button -->
+            <div class="mt-8">
+                <button id="action-btn" onclick="handleAuth()" class="w-full flex items-center justify-center rounded-xl bg-primary h-14 text-lg font-bold text-[#121212] transition-all hover:opacity-90 active:scale-95">
+                    Sign Up
+                </button>
+            </div>
+
+            <!-- Google Sign Up Section -->
+            <div class="flex flex-col items-center gap-4 mt-6 w-full">
+                <div class="relative flex items-center w-full">
+                    <div class="flex-grow border-t border-[#3b4754]"></div>
+                    <span class="flex-shrink mx-4 text-sm font-medium text-[#A9A9A9]">Or sign up with</span>
+                    <div class="flex-grow border-t border-[#3b4754]"></div>
+                </div>
+                
+                <button class="flex items-center justify-center size-14 rounded-full border border-[#3b4754] bg-background-light transition-colors hover:bg-white/10 active:scale-95">
+                    <svg class="w-7 h-7" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.62 1.9-4.63 1.9-3.87 0-7.02-3.22-7.02-7.19s3.15-7.19 7.02-7.19c2.23 0 3.68.88 4.54 1.72l2.59-2.59c-1.62-1.5-3.8-2.59-6.92-2.59-5.86 0-10.6 4.84-10.6 10.71s4.74 10.71 10.6 10.71c2.86 0 5.45-1 7.25-2.82 1.9-1.9 2.7-4.59 2.7-7.25 0-.8-.13-1.42-.24-1.92z" fill="#FFFFFF"/>
+                        <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.62 1.9-4.63 1.9-3.87 0-7.02-3.22-7.02-7.19s3.15-7.19 7.02-7.19c2.23 0 3.68.88 4.54 1.72l2.59-2.59c-1.62-1.5-3.8-2.59-6.92-2.59-5.86 0-10.6 4.84-10.6 10.71s4.74 10.71 10.6 10.71c2.86 0 5.45-1 7.25-2.82 1.9-1.9 2.7-4.59 2.7-7.25 0-.8-.13-1.42-.24-1.92z" fill="none"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Toggle Text -->
+            <p class="text-center text-base font-normal text-[#A9A9A9] mt-6">
+                <span id="toggle-text">Already have an account?</span> 
+                <a href="#" onclick="toggleAuthMode()" class="font-bold text-primary hover:underline ml-1" id="toggle-link">Log In</a>
+            </p>
+
+        </main>
+    </div>
+</div>
+
+<script>
+    // --- Firebase Configuration ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBQHKJvI_FBqClddSho75Xz6w4vjXbt_w0",
+        authDomain: "spin-and-win-d4217.firebaseapp.com",
+        databaseURL: "https://spin-and-win-d4217-default-rtdb.firebaseio.com",
+        projectId: "spin-and-win-d4217",
+        storageBucket: "spin-and-win-d4217.firebasestorage.app",
+        messagingSenderId: "1000691452468",
+        appId: "1:1000691452468:web:723e6e050faf6423e99861"
+    };
+
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const database = firebase.database();
+
+    let isLoginMode = false;
+
+    const titleEl = document.getElementById('page-title');
+    const subtitleEl = document.getElementById('page-subtitle');
+    const actionBtn = document.getElementById('action-btn');
+    const toggleText = document.getElementById('toggle-text');
+    const toggleLink = document.getElementById('toggle-link');
+    
+    const nameGroup = document.getElementById('name-group');
+    const mobileGroup = document.getElementById('mobile-group');
+
+    function toggleAuthMode() {
+        isLoginMode = !isLoginMode;
+
+        if (isLoginMode) {
+            // Switch to Login Mode
+            titleEl.innerText = "Welcome Back";
+            subtitleEl.innerText = "Log in to continue";
+            actionBtn.innerText = "Log In";
+            toggleText.innerText = "Don't have an account?";
+            toggleLink.innerText = "Sign Up";
+
+            // Hide Name and Mobile
+            nameGroup.classList.add('hidden-field');
+            mobileGroup.classList.add('hidden-field');
+        } else {
+            // Switch to Sign Up Mode
+            titleEl.innerText = "Create Account";
+            subtitleEl.innerText = "Sign up to get started!";
+            actionBtn.innerText = "Sign Up";
+            toggleText.innerText = "Already have an account?";
+            toggleLink.innerText = "Log In";
+
+            // Show Name and Mobile
+            nameGroup.classList.remove('hidden-field');
+            mobileGroup.classList.remove('hidden-field');
+        }
+    }
+
+    function togglePassword() {
+        const passwordInput = document.getElementById('password');
+        const eyeIcon = document.getElementById('eye-icon');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            eyeIcon.innerHTML = '<path d="M650-260 526-384q17-7 32.5-17t27.5-23q33-33 53.5-75T660-580q0-20-3-39t-10-37l56-56q19 30 28 63t9 69q0 75-52.5 127.5T560-320q-20 0-39-3t-37-10l-56 56q30 19 63 28t69 9ZM480-420q-33 0-56.5-23.5T400-500q0-33 23.5-56.5T480-580q33 0 56.5 23.5T560-500q0 33-23.5 56.5T480-420Zm-42-266 58-58q10-2 22-3t22-1q146 0 266 81.5T920-500q-26 65-70 115t-100 83l58 58q72-43 127-106t85-150q-54-137-174-218.5T480-800q-26 0-51 2t-49 6l58 58ZM440-440l-76-76q-3 10-4.5 20.5T358-480q0 45 31.5 76.5T466-372q10 0 20.5-1.5T508-378l-68-62Zm360 360L56-224l56-56 124-124q-39-23-71.5-53.5T104-540q-54-137-174-218.5T480-840q26 0 51-2t49-6l124-124 56 56-744 744ZM480-280q-113 0-207.5-59.5T128-500q16-33 38.5-62.5T218-616l262 262q-10 2-22 3t-22 1Z"/>';
+        } else {
+            passwordInput.type = 'password';
+            eyeIcon.innerHTML = '<path d="M480-320q75 0 127.5-52.5T660-500q0-75-52.5-127.5T480-680q-75 0-127.5 52.5T300-500q0 75 52.5 127.5T480-320Zm0-72q-45 0-76.5-31.5T372-500q0-45 31.5-76.5T480-608q45 0 76.5 31.5T588-500q0 45-31.5 76.5T480-392Zm0 192q-146 0-266-81.5T40-500q54-137 174-218.5T480-800q146 0 266 81.5T920-500q-54 137-174 218.5T480-200Zm0-300Zm0 220q113 0 207.5-59.5T832-500q-50-101-144.5-160.5T480-720q-113 0-207.5 59.5T128-500q50 101 144.5 160.5T480-200Z"/>';
+        }
+    }
+
+    // --- Auth Logic ---
+    function handleAuth() {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value.trim();
+
+        if (isLoginMode) {
+            // --- LOGIN LOGIC ---
+            if (!email || !password) {
+                alert("Please enter email and password!");
+                return;
+            }
+            
+            // Check if user exists
+            database.ref('users').orderByChild('gmail').equalTo(email).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    let userFound = false;
+                    snapshot.forEach((childSnapshot) => {
+                        const userData = childSnapshot.val();
+                        if (userData.password === password) {
+                            userFound = true;
+                            // Login Success
+                            localStorage.setItem('loggedInUserId', childSnapshot.key);
+                            alert("Login Successful!");
+                            window.location.href = "home.html"; 
+                        }
+                    });
+                    if (!userFound) alert("Incorrect Password!");
+                } else {
+                    alert("User not found! Please Sign Up.");
+                }
+            });
+
+        } else {
+            // --- SIGN UP LOGIC ---
+            const name = document.getElementById('name').value.trim();
+            const mobile = document.getElementById('mobile').value.trim();
+
+            if (!name || !mobile || !email || !password) {
+                alert("Please fill all fields!");
+                return;
+            }
+
+            // Check for Duplicate Email
+            database.ref('users').orderByChild('gmail').equalTo(email).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    alert("Email already registered! Please Log In.");
+                } else {
+                    // Proceed to Register
+                    const deviceId = navigator.userAgent.replace(/\D+/g, '').slice(0, 16);
+                    const newUserRef = database.ref('users').push();
+                    const userId = newUserRef.key;
+
+                    const userData = {
+                        name: name,
+                        mobile: mobile,
+                        gmail: email,
+                        password: password,
+                        Status: "active",
+                        balance: "10",
+                        deviceId: deviceId,
+                        UserId: userId
+                    };
+
+                    newUserRef.set(userData, (error) => {
+                        if (error) {
+                            alert("Error creating account: " + error.message);
+                        } else {
+                            alert("Account Created Successfully!");
+                            localStorage.setItem('loggedInUserId', userId);
+                            window.location.href = "home.html";
+                        }
+                    });
+                }
+            });
+        }
+    }
+</script>
+
+</body>
+</html>

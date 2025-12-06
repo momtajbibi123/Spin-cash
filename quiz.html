@@ -1,0 +1,306 @@
+
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GK Quiz</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<!-- Canvas Confetti -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#13ec6a",
+              "background-dark": "#0F1A14",
+              "surface-dark": "#193324",
+              "border-dark": "#326747",
+              "success": "#13ec6a",
+              "error": "#d50000"
+            },
+            fontFamily: {
+              "display": ["Plus Jakarta Sans", "sans-serif"]
+            },
+          },
+        },
+      }
+</script>
+<style>
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    body {
+      min-height: 100vh;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #0F1A14;
+    }
+    .answer-input {
+        background: var(--surface-dark);
+        border: 2px solid var(--border-dark);
+        color: #fff;
+        text-align: center;
+        font-size: 18px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    .answer-input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 15px rgba(19, 236, 106, 0.2);
+    }
+    .option-btn {
+        background: var(--surface-dark);
+        border: 1px solid var(--border-dark);
+        box-shadow: 5px 5px 10px #0a110c, -5px -5px 10px #14271c;
+        transition: all 0.2s ease;
+        text-align: left;
+        padding-left: 20px;
+    }
+    .option-btn:active {
+        transform: scale(0.98);
+    }
+    .correct {
+        background: rgba(19, 236, 106, 0.2) !important;
+        border-color: var(--success) !important;
+        color: var(--success) !important;
+        box-shadow: 0 0 15px rgba(19, 236, 106, 0.3) !important;
+    }
+    .wrong {
+        background: rgba(213, 0, 0, 0.2) !important;
+        border-color: var(--error) !important;
+        color: var(--error) !important;
+        animation: shake 0.5s;
+    }
+    @keyframes shake {
+        0% { transform: translateX(0); } 25% { transform: translateX(-5px); }
+        50% { transform: translateX(5px); } 75% { transform: translateX(-5px); }
+        100% { transform: translateX(0); }
+    }
+</style>
+</head>
+<body class="dark bg-background-dark text-white flex flex-col">
+
+    <!-- Header -->
+    <div class="flex items-center p-4 sticky top-0 bg-background-dark z-10 border-b border-border-dark/50">
+        <div class="flex size-12 shrink-0 items-center justify-start cursor-pointer" onclick="window.location.href='home.html'">
+            <span class="material-symbols-outlined text-primary">arrow_back</span>
+        </div>
+        <h1 class="text-white text-lg font-bold flex-1 text-center">Quiz Challenge</h1>
+        <div class="flex items-center justify-end gap-2">
+            <!-- Coin Box -->
+            <div class="flex items-center gap-2 rounded-full bg-surface-dark px-3 py-1.5 border border-border-dark">
+                <span class="material-symbols-outlined text-primary">toll</span>
+                <p id="header-coins" class="text-white text-base font-bold">0</p>
+            </div>
+            <!-- Wallet Box -->
+            <div class="flex items-center gap-2 rounded-full bg-surface-dark px-3 py-1.5 border border-border-dark">
+                <span class="material-symbols-outlined text-primary">account_balance_wallet</span>
+                <p id="header-balance" class="text-white text-base font-bold">₹0</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 flex flex-col items-center justify-center p-6 w-full max-w-md mx-auto">
+        
+        <div class="w-full bg-surface-dark rounded-3xl p-6 text-center shadow-2xl border border-border-dark mb-6 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary to-transparent opacity-50"></div>
+            <p class="text-gray-400 text-xs font-medium mb-3 uppercase tracking-widest">Question</p>
+            <h2 id="question-text" class="text-xl font-bold text-white leading-snug">Loading Question...</h2>
+        </div>
+
+        <div class="w-full mb-6 relative">
+            <input type="text" id="answer-display" class="answer-input w-full py-3 rounded-xl" placeholder="Select an answer" readonly>
+        </div>
+
+        <div class="flex flex-col gap-3 w-full" id="options-container">
+            <!-- Options will be injected here -->
+        </div>
+
+        <p id="status-msg" class="mt-6 text-sm font-medium h-6 text-center"></p>
+
+        <!-- Adsterra Banner Ad -->
+        <div class="w-full flex justify-center items-center mt-auto pt-6 overflow-hidden">
+            <script type="text/javascript">
+                atOptions = {
+                    'key' : '8d8ed01dbfb159ca9bb482d1dc52a43b',
+                    'format' : 'iframe',
+                    'height' : 90,
+                    'width' : 728,
+                    'params' : {}
+                };
+            </script>
+            <script type="text/javascript" src="//www.highperformanceformat.com/8d8ed01dbfb159ca9bb482d1dc52a43b/invoke.js"></script>
+        </div>
+    </div>
+
+    <!-- Audio -->
+    <audio id="correct-sound" src="https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3"></audio>
+    <audio id="wrong-sound" src="https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3"></audio>
+
+<script>
+    // --- Firebase Config ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBQHKJvI_FBqClddSho75Xz6w4vjXbt_w0",
+        authDomain: "spin-and-win-d4217.firebaseapp.com",
+        databaseURL: "https://spin-and-win-d4217-default-rtdb.firebaseio.com",
+        projectId: "spin-and-win-d4217",
+        storageBucket: "spin-and-win-d4217.firebasestorage.app",
+        messagingSenderId: "1000691452468",
+        appId: "1:1000691452468:web:723e6e050faf6423e99861"
+    };
+
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const database = firebase.database();
+    const userId = localStorage.getItem('loggedInUserId');
+    if (!userId) { window.location.href = "login.html"; }
+
+    // --- Elements ---
+    const questionText = document.getElementById('question-text');
+    const answerDisplay = document.getElementById('answer-display');
+    const optionsContainer = document.getElementById('options-container');
+    const headerBalance = document.getElementById('header-balance');
+    const headerCoins = document.getElementById('header-coins');
+    const statusMsg = document.getElementById('status-msg');
+    const correctSound = document.getElementById('correct-sound');
+    const wrongSound = document.getElementById('wrong-sound');
+
+    const questions = [
+        { q: "What is the capital of France?", a: "Paris", options: ["London", "Berlin", "Paris", "Madrid"] },
+        { q: "Which planet is known as the Red Planet?", a: "Mars", options: ["Venus", "Mars", "Jupiter", "Saturn"] },
+        { q: "What is 5 + 7?", a: "12", options: ["10", "11", "12", "13"] },
+        { q: "Who wrote 'Hamlet'?", a: "Shakespeare", options: ["Shakespeare", "Dickens", "Hemingway", "Austen"] },
+        { q: "What is the largest ocean?", a: "Pacific", options: ["Atlantic", "Indian", "Arctic", "Pacific"] },
+    ];
+
+    let currentQuestion = {};
+    let isProcessing = false;
+    const rewardPerCorrect = 5;
+    const COIN_TO_BALANCE_RATE = 100; // 100 coins = 1 Rupee
+
+    function init() {
+        loadUserData();
+        generateQuestion();
+    }
+
+    function loadUserData() {
+        database.ref(`users/${userId}/balance`).on('value', (snap) => {
+            const balance = snap.val() || 0;
+            headerBalance.innerText = "₹" + parseFloat(balance).toFixed(2);
+        });
+        database.ref(`users/${userId}/Coin`).on('value', (snap) => {
+            headerCoins.innerText = (snap.val() || 0).toLocaleString();
+        });
+    }
+
+    function generateQuestion() {
+        isProcessing = false;
+        answerDisplay.value = "";
+        answerDisplay.classList.remove('correct', 'wrong');
+        statusMsg.innerText = "";
+        
+        const randomIndex = Math.floor(Math.random() * questions.length);
+        currentQuestion = questions[randomIndex];
+
+        questionText.innerText = currentQuestion.q;
+
+        const shuffledOptions = [...currentQuestion.options].sort(() => Math.random() - 0.5);
+
+        optionsContainer.innerHTML = '';
+        shuffledOptions.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn h-14 rounded-xl text-lg font-medium text-gray-300 hover:text-white w-full';
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(opt, btn);
+            optionsContainer.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, btnElement) {
+        if (isProcessing) return;
+        isProcessing = true;
+
+        answerDisplay.value = selected;
+
+        if (selected === currentQuestion.a) {
+            btnElement.classList.add('correct');
+            answerDisplay.classList.add('correct');
+            statusMsg.innerText = `Correct! +${rewardPerCorrect} Coins`;
+            statusMsg.style.color = "#13ec6a";
+            
+            correctSound.currentTime = 0;
+            correctSound.play().catch(()=>{});
+
+            confetti({
+                particleCount: 100, spread: 70, origin: { y: 0.6 },
+                colors: ['#13ec6a', '#ffffff']
+            });
+
+            updateCoinsAndBalance(rewardPerCorrect);
+
+        } else {
+            btnElement.classList.add('wrong');
+            answerDisplay.classList.add('wrong');
+            statusMsg.innerText = `Wrong! Answer: ${currentQuestion.a}`;
+            statusMsg.style.color = "#d50000";
+            
+            wrongSound.currentTime = 0;
+            wrongSound.play().catch(()=>{});
+
+            const buttons = optionsContainer.querySelectorAll('button');
+            buttons.forEach(btn => {
+                if (btn.innerText === currentQuestion.a) {
+                    btn.classList.add('correct');
+                }
+            });
+        }
+
+        setTimeout(generateQuestion, 2000);
+    }
+
+    // UPDATED: Function to handle coin and balance conversion
+    function updateCoinsAndBalance(amount) {
+        if (!userId) return;
+
+        const userRef = database.ref(`users/${userId}`);
+
+        userRef.transaction((userData) => {
+            if (userData) {
+                // Initialize fields if they don't exist
+                let currentCoins = parseInt(userData.Coin) || 0;
+                let currentBalance = parseFloat(userData.balance) || 0;
+
+                // Add the new coins
+                currentCoins += amount;
+
+                // Check if conversion is needed
+                if (currentCoins >= COIN_TO_BALANCE_RATE) {
+                    const amountToConvert = Math.floor(currentCoins / COIN_TO_BALANCE_RATE);
+                    currentBalance += amountToConvert;
+                    currentCoins -= amountToConvert * COIN_TO_BALANCE_RATE;
+                }
+
+                // Update the user data object
+                userData.Coin = currentCoins;
+                userData.balance = currentBalance;
+            }
+            return userData;
+        });
+    }
+
+    init();
+
+</script>
+</body>
+</html>

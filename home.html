@@ -1,0 +1,914 @@
+
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Spin & Win</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<style>
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    body { min-height: 100vh; background-color: #0F1A14; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .nav-item .material-symbols-outlined.fill { font-variation-settings: 'FILL' 1; }
+    /* Styles for Dialogs */
+    .dialog-overlay {
+        position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(5px); z-index: 50; opacity: 0; visibility: hidden;
+        transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+        display: flex; justify-content: center; align-items: center;
+    }
+    .dialog-overlay.open { opacity: 1; visibility: visible; }
+    .dialog-panel {
+        background-color: #193324; border: 1px solid #326747;
+        border-radius: 1.5rem; padding: 1.5rem; width: 90%; max-width: 400px;
+        transform: scale(0.95); transition: transform 0.3s ease;
+    }
+    .dialog-overlay.open .dialog-panel { transform: scale(1); }
+    /* Styles for Contact Tab */
+    @keyframes typing {
+        0% { content: '.'; } 33% { content: '..'; } 66% { content: '...'; } 100% { content: '.'; }
+    }
+    .typing::after { content: '.'; animation: typing 1.5s infinite; }
+    
+    /* Processing Dialog Styles */
+    #processing-dialog .dialog-panel {
+        background: #0F1A14;
+        width: 100%; height: 100%; max-width: none; border-radius: 0;
+        display: flex; flex-direction: column; justify-content: center; align-items: center;
+    }
+    @keyframes progress-bar {
+        0% { width: 0%; }
+        100% { width: 100%; }
+    }
+    .progress-bar-inner {
+        animation: progress-bar 3s ease-out forwards;
+    }
+</style>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#13ec6a", "background-dark": "#0F1A14",
+            "surface-dark": "#193324", "border-dark": "#326747",
+            "contact-primary": "#eecd2b", /* Color from contack.html */
+            "contact-bg-dark": "#181711", /* Color from contack.html */
+            "contact-surface-dark": "#393628", /* Color from contack.html */
+            "contact-text-dark": "#b9b49d", /* Color from contack.html */
+          },
+          fontFamily: { "display": ["Plus Jakarta Sans", "sans-serif"] },
+          borderRadius: { "2xl": "1.5rem", "full": "9999px" },
+        },
+      },
+    }
+</script>
+</head>
+<body class="dark bg-background-dark font-display text-slate-200">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden">
+    
+    <!-- ====== HOME TAB ====== -->
+    <section id="home-tab" class="tab-content active">
+        <header class="flex flex-col gap-4 bg-background-dark p-4 pb-2 sticky top-0 z-10">
+            <div class="flex items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div id="user-avatar-home" class="flex items-center justify-center size-12 rounded-full bg-surface-dark text-primary text-xl font-bold shadow">U</div>
+                    <div>
+                        <p class="text-sm text-slate-400">Welcome back!</p>
+                        <p id="user-name-home" class="text-lg font-bold text-white">Loading...</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 rounded-full bg-surface-dark py-2 px-3 shadow-sm">
+                        <span class="material-symbols-outlined text-primary text-xl">toll</span>
+                        <p id="user-coins-home" class="text-white text-base font-bold">0</p>
+                    </div>
+                    <div class="flex items-center gap-2 rounded-full bg-surface-dark py-2 px-3 shadow-sm">
+                        <span class="material-symbols-outlined text-primary text-xl">account_balance_wallet</span>
+                        <p id="user-balance-home" class="text-white text-base font-bold">₹0.00</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <main class="flex-grow px-4 pb-28 pt-4">
+            <div class="grid grid-cols-2 gap-4">
+                <div class="col-span-2 flex flex-col justify-between rounded-2xl bg-surface-dark p-4 text-white h-48 shadow-lg border border-border-dark">
+                    <div class="flex items-start gap-4">
+                        <div class="bg-primary/10 p-2 rounded-lg"><span class="material-symbols-outlined text-4xl text-primary">casino</span></div>
+                        <div>
+                            <h3 class="text-2xl font-bold">Spin and Win</h3>
+                            <p class="text-sm text-primary font-medium">Spins Available: 5</p>
+                        </div>
+                    </div>
+                    <button onclick="window.location.href='spin.html'" class="w-full h-10 rounded-full bg-primary text-black font-bold text-sm shadow-md transition-transform hover:scale-105">Play Now</button>
+                </div>
+                <div class="flex flex-col items-start justify-between rounded-2xl bg-surface-dark p-4 h-44">
+                    <div class="bg-primary/10 p-3 rounded-lg"><span class="material-symbols-outlined text-3xl text-primary">calendar_month</span></div>
+                    <div class="w-full">
+                        <h3 class="text-lg font-bold text-white">Daily Bonus</h3>
+                        <p class="text-xs text-slate-400 mb-2">Claim your daily reward</p>
+                        <button onclick="window.location.href='daily rewards.html'" class="w-full h-8 rounded-full bg-primary text-black text-xs font-bold">Claim</button>
+                    </div>
+                </div>
+                <div class="flex flex-col items-start justify-between rounded-2xl bg-surface-dark p-4 h-44">
+                    <div class="bg-primary/10 p-3 rounded-lg"><span class="material-symbols-outlined text-3xl text-primary">group_add</span></div>
+                    <div class="w-full">
+                        <h3 class="text-lg font-bold text-white">Refer Box</h3>
+                        <p class="text-xs text-slate-400 mb-2">Invite your friends</p>
+                        <button onclick="showTab('refer')" class="w-full h-8 rounded-full bg-primary text-black text-xs font-bold">Invite</button>
+                    </div>
+                </div>
+                <div class="flex flex-col items-start justify-between rounded-2xl bg-surface-dark p-4 h-44">
+                    <div class="bg-primary/10 p-3 rounded-lg"><span class="material-symbols-outlined text-3xl text-primary">paid</span></div>
+                    <div class="w-full">
+                        <h3 class="text-lg font-bold text-white">Withdraw Box</h3>
+                        <p class="text-xs text-slate-400 mb-2">Instant cash out</p>
+                        <button onclick="showTab('wallet')" class="w-full h-8 rounded-full bg-primary text-black text-xs font-bold">Withdraw</button>
+                    </div>
+                </div>
+                <div class="flex flex-col items-start justify-between rounded-2xl bg-surface-dark p-4 h-44">
+                    <div class="bg-primary/10 p-3 rounded-lg"><span class="material-symbols-outlined text-3xl text-primary">smart_display</span></div>
+                    <div class="w-full">
+                        <h3 class="text-lg font-bold text-white">Video Earning</h3>
+                        <p class="text-xs text-slate-400 mb-2">Watch videos to earn</p>
+                        <button onclick="window.location.href='watch-video.html'" class="w-full h-8 rounded-full bg-primary text-black text-xs font-bold">Watch</button>
+                    </div>
+                </div>
+                <div class="flex flex-col items-start justify-between rounded-2xl bg-surface-dark p-4 h-44">
+                    <div class="bg-primary/10 p-3 rounded-lg"><span class="material-symbols-outlined text-3xl text-primary">style</span></div>
+                    <div class="w-full">
+                        <h3 class="text-lg font-bold text-white">Scratch Card</h3>
+                        <p class="text-xs text-slate-400 mb-2">3 cards left</p>
+                        <button onclick="window.location.href='scarchcard.html'" class="w-full h-8 rounded-full bg-primary text-black text-xs font-bold">Scratch Now</button>
+                    </div>
+                </div>
+                <div class="flex flex-col items-start justify-between rounded-2xl bg-surface-dark p-4 h-44">
+                    <div class="bg-primary/10 p-3 rounded-lg"><span class="material-symbols-outlined text-3xl text-primary">quiz</span></div>
+                    <div class="w-full">
+                        <h3 class="text-lg font-bold text-white">Quiz Box</h3>
+                        <p class="text-xs text-slate-400 mb-2">Test your knowledge</p>
+                        <button onclick="window.location.href='quiz.html'" class="w-full h-8 rounded-full bg-primary text-black text-xs font-bold">Start Quiz</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </section>
+
+    <!-- ====== REFER TAB ====== -->
+    <section id="refer-tab" class="tab-content">
+        <header class="flex items-center p-4 justify-between sticky top-0 z-10 bg-background-dark">
+            <button onclick="showTab('home')" class="flex size-12 shrink-0 items-center justify-start text-primary">
+                <span class="material-symbols-outlined">arrow_back_ios_new</span>
+            </button>
+            <h1 class="text-white text-lg font-bold flex-1 text-center">Referral Program</h1>
+            <div class="w-12"></div>
+        </header>
+        <main class="flex-1 px-4 py-2 pb-28">
+            <div class="w-full">
+                <div class="bg-cover bg-center flex flex-col justify-end overflow-hidden rounded-2xl min-h-[200px]" style='background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 40%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuAtVQmnZTDSZpEavmcbZ7koUzh80jYMt76hkuT26D768e5eRcaAwE8nlTvPnkRBI34K_2TRLqqGOWvuAFsXvlSfPb0pdt4EY2iHu9_0IvURcg4vwlmPJQVIJl6LLehx6qouZVZx_zqZkXnxy_ZAQAOuKER_uRwX1lmTEvc9opJuyZvdOKLzkhU5RoEPwRDeEVKJlrPKKqjToRIFiGtlyreTwuuaOLScq92r4ebP8vQUsaPMIdt43zHVO_oyBMJVNk78RBhtbdclYkht");'>
+                    <div class="flex p-5">
+                        <p class="text-white tracking-light text-[28px] font-bold leading-tight">Invite Friends, Earn Rewards</p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 flex flex-col gap-4 rounded-2xl border border-border-dark bg-surface-dark p-5">
+                <div class="flex flex-col items-start gap-1">
+                    <p class="text-white text-lg font-bold">Share Your Code</p>
+                    <p class="text-slate-400 text-base font-normal">Share your unique code with friends. You both get bonus coins when they sign up.</p>
+                </div>
+                <div class="flex items-center justify-between rounded-lg border border-dashed border-primary/50 bg-primary/10 p-4">
+                    <span id="referral-code-display" class="text-lg font-bold tracking-widest text-primary">LOADING...</span>
+                    <button id="copy-btn" aria-label="Copy referral code" class="flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined">content_copy</span>
+                    </button>
+                </div>
+                <button id="share-btn" class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-6 bg-primary text-black text-base font-bold mt-2">
+                    <span class="truncate">Share Now</span>
+                </button>
+            </div>
+            <div class="mt-4 text-center">
+                <a class="text-sm font-medium text-primary hover:underline" href="#">
+                    Terms &amp; Conditions apply
+                </a>
+            </div>
+            <h2 class="text-white text-2xl font-bold text-left pb-1 pt-8">Have a Referral Code?</h2>
+            <p class="text-slate-400 text-base font-normal pb-3">Enter a code from a friend to get your welcome bonus.</p>
+            <div class="flex items-center gap-3">
+                <input id="referral-input" class="flex-1 appearance-none bg-surface-dark border border-border-dark text-white placeholder-slate-500 rounded-lg h-12 px-4 focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="Enter friend's referral code" type="text"/>
+                <button id="submit-btn" class="flex min-w-[100px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-4 bg-primary text-black text-base font-bold">
+                    <span class="truncate">Submit</span>
+                </button>
+            </div>
+        </main>
+    </section>
+
+    <!-- ====== WALLET TAB (WITHDRAWAL UI) ====== -->
+    <section id="wallet-tab" class="tab-content">
+        <header class="flex items-center p-4 justify-between sticky top-0 bg-background-dark z-10">
+            <button onclick="showTab('home')" class="flex size-12 shrink-0 items-center justify-start text-primary">
+                <span class="material-symbols-outlined">arrow_back_ios_new</span>
+            </button>
+            <h1 class="text-white text-lg font-bold flex-1 text-center">Withdrawal</h1>
+            <div class="flex items-center justify-end">
+                <div class="flex h-10 items-center gap-2 rounded-full bg-surface-dark px-3">
+                    <span class="material-symbols-outlined text-primary text-xl">account_balance</span>
+                    <span id="header-balance" class="text-white font-bold text-sm">₹0.00</span>
+                </div>
+            </div>
+        </header>
+        <main class="flex-grow flex flex-col px-4 pb-28">
+            <section class="mt-8">
+                <label class="flex flex-col w-full">
+                    <p class="text-white text-base font-medium pb-2">Amount to Withdraw</p>
+                    <div class="relative">
+                        <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-5 text-lg font-bold text-white/70">₹</span>
+                        <input id="withdraw-amount-input" type="number" class="form-input w-full rounded-full text-white focus:outline-none focus:ring-2 focus:ring-primary/50 border border-border-dark bg-surface-dark h-14 placeholder:text-white/50 pl-10 pr-5 text-xl font-bold" placeholder="0.00"/>
+                    </div>
+                </label>
+            </section>
+            <section class="mt-4">
+                <div id="amount-buttons" class="flex gap-3 flex-wrap">
+                    <button data-amount="10" class="flex h-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-dark px-5 hover:bg-border-dark transition-colors"><p class="text-white text-sm font-medium">₹10</p></button>
+                    <button data-amount="20" class="flex h-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-dark px-5 hover:bg-border-dark transition-colors"><p class="text-white text-sm font-medium">₹20</p></button>
+                    <button data-amount="50" class="flex h-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-dark px-5 hover:bg-border-dark transition-colors"><p class="text-white text-sm font-medium">₹50</p></button>
+                    <button data-amount="100" class="flex h-10 shrink-0 cursor-pointer items-center justify-center rounded-full bg-surface-dark px-5 hover:bg-border-dark transition-colors"><p class="text-white text-sm font-medium">₹100</p></button>
+                </div>
+            </section>
+            
+            <section class="mt-6">
+                <div class="flex justify-between items-center pb-3">
+                    <h3 class="text-white text-lg font-bold">Select Payment Method</h3>
+                    <a href="history.html" class="flex items-center gap-1.5 text-sm font-semibold text-primary border border-border-dark rounded-full px-3 py-1 hover:bg-surface-dark transition-colors">
+                        <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 1;">history</span>
+                        History
+                    </a>
+                </div>
+                <div class="space-y-3">
+                    <div id="upi-method" class="flex items-center justify-between rounded-2xl border bg-surface-dark p-4 cursor-pointer">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10"><span class="material-symbols-outlined text-primary text-3xl">payments</span></div>
+                            <p class="text-white text-base font-semibold">UPI</p>
+                        </div>
+                        <div id="upi-check" class="flex h-6 w-6 items-center justify-center rounded-full"></div>
+                    </div>
+                    <div id="bank-method" class="flex items-center justify-between rounded-2xl border bg-surface-dark p-4 cursor-pointer">
+                        <div class="flex items-center gap-4">
+                            <div class="flex h-12 w-12 items-center justify-center rounded-lg bg-surface-dark"><span class="material-symbols-outlined text-white text-3xl">account_balance</span></div>
+                            <p class="text-white text-base font-semibold">Bank Transfer</p>
+                        </div>
+                        <div id="bank-check" class="h-6 w-6 rounded-full border-2 border-slate-500"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="payment-details-container" class="mt-6"></section>
+            <div class="flex-grow"></div> 
+        </main>
+        <footer class="sticky bottom-20 bg-background-dark p-4 pt-2">
+            <button id="withdraw-btn" class="flex h-14 w-full items-center justify-center rounded-2xl bg-primary px-6 text-center shadow-lg shadow-primary/20">
+                <span class="text-base font-bold text-black">Withdraw</span>
+            </button>
+        </footer>
+    </section>
+
+    <!-- ====== CONTACT TAB ====== -->
+    <section id="contact-tab" class="tab-content bg-contact-bg-dark text-white h-screen flex flex-col">
+        <header class="flex items-center p-4 pb-2 justify-between shrink-0 bg-contact-bg-dark">
+            <button onclick="showTab('home')" class="text-white flex size-12 shrink-0 items-center justify-center">
+                <span class="material-symbols-outlined">arrow_back_ios_new</span>
+            </button>
+            <h2 class="text-white text-lg font-bold leading-tight flex-1 text-center">Game Assistant</h2>
+            <div class="w-12"></div>
+        </header>
+        <main id="chat-container" class="flex-1 overflow-y-auto px-4 pt-2 pb-4 space-y-4">
+            <!-- Initial Bot Message -->
+            <div class="flex items-start gap-3">
+                <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-10 shrink-0" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC3NejJRgLWe0L13dtxO-14xi4Kc2yNhIqMJEJHAzslXGVeetqoKE0j2SQvOQwQjUe8Jt8aoCEc86bEpBnQaaMrQ2ZNmGyExYNHMqAocAR5BZfNIqCNkiB7P7egOvcL2Kw9v40Xjnb63soD8p1WU0dpDnpfbtDpT9zlK7sTerUk2MG7ZnJSDAvk3yVhqvL_fcuT_kMKKd4FxqQdHcjnpGWxQWfAXbhYHOXFYgJNbn8n9V9vbIBPA3FuRiGqMBxIMuODd_E6JDbgM6w");'></div>
+                <div class="flex flex-1 flex-col gap-2 items-start">
+                    <p class="text-contact-text-dark text-[13px] font-normal leading-normal max-w-[360px]">Game Assistant</p>
+                    <div class="space-y-2">
+                        <p class="text-base font-normal leading-normal flex max-w-[360px] rounded-2xl px-4 py-3 bg-contact-surface-dark text-white">
+                            Hello! I'm your Game Assistant. How can I help you today?
+                        </p>
+                        <p class="text-base font-normal leading-normal flex max-w-[360px] rounded-2xl px-4 py-3 bg-contact-surface-dark text-white">
+                            Please choose from the options below.
+                        </p>
+                    </div>
+                    <div id="option-buttons" class="grid grid-cols-1 @[240px]:grid-cols-2 gap-2 mt-2 w-full max-w-[360px]">
+                        <button class="option-btn text-base font-medium leading-normal flex items-center justify-center text-center rounded-2xl px-4 py-3 bg-contact-surface-dark text-white">Withdrawal Problem</button>
+                        <button class="option-btn text-base font-medium leading-normal flex items-center justify-center text-center rounded-2xl px-4 py-3 bg-contact-surface-dark text-white">Point Problem</button>
+                        <button class="option-btn text-base font-medium leading-normal flex items-center justify-center text-center rounded-2xl px-4 py-3 bg-contact-surface-dark text-white">Balance Problem</button>
+                        <button class="option-btn text-base font-medium leading-normal flex items-center justify-center text-center rounded-2xl px-4 py-3 bg-contact-surface-dark text-white">Login Problem</button>
+                        <button class="option-btn text-base font-medium leading-normal flex items-center justify-center text-center rounded-2xl px-4 py-3 bg-contact-surface-dark text-white">Others</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer class="flex items-start px-4 py-3 gap-3 bg-contact-bg-dark shrink-0">
+            <label class="flex flex-col min-w-40 flex-1">
+                <div class="flex w-full flex-1 items-stretch rounded-2xl">
+                    <textarea id="message-input" class="form-textarea flex w-full min-w-0 flex-1 resize-none overflow-hidden rounded-2xl text-white focus:outline-0 focus:ring-0 border-none bg-contact-surface-dark focus:border-none placeholder:text-contact-text-dark px-4 py-3 text-base font-normal leading-normal" placeholder="Write your message..." rows="1"></textarea>
+                </div>
+            </label>
+            <button id="send-btn" class="flex items-center justify-center shrink-0 size-12 cursor-pointer overflow-hidden rounded-full bg-contact-primary text-contact-bg-dark">
+                <span class="material-symbols-outlined">send</span>
+            </button>
+        </footer>
+    </section>
+
+    <!-- ====== PROFILE TAB ====== -->
+    <section id="profile-tab" class="tab-content">
+        <header class="flex items-center p-4 justify-between sticky top-0 z-10 bg-background-dark">
+            <button onclick="showTab('home')" class="text-primary"><span class="material-symbols-outlined text-3xl">arrow_back_ios</span></button>
+            <h1 class="text-white text-xl font-bold">Profile</h1>
+            <button class="text-primary"><span class="material-symbols-outlined text-3xl">settings</span></button>
+        </header>
+        <main class="flex-grow px-4 pb-28 pt-4">
+            <div class="flex w-full flex-col gap-2 items-center">
+                <div class="relative">
+                    <div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-32 w-32 border-4 border-primary p-1 bg-surface-dark" id="user-avatar-profile-img"></div>
+                </div>
+                <p id="user-name-profile" class="text-2xl font-bold text-white text-center">Loading...</p>
+                <p id="user-level-profile" class="text-slate-400 text-center">Level 1 Beginner</p>
+                <button id="edit-profile-btn" class="mt-2 h-12 px-8 w-full max-w-xs rounded-full bg-primary text-black font-bold text-base">Edit Profile</button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mt-8">
+                <div class="flex flex-col justify-center items-center rounded-2xl p-4 bg-surface-dark border border-border-dark text-center h-28">
+                    <p class="text-slate-400 text-base font-medium">Total Coins</p>
+                    <div class="flex items-center gap-2 mt-2">
+                        <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">toll</span>
+                        <p id="profile-coins" class="text-white text-3xl font-bold">0</p>
+                    </div>
+                </div>
+                <div class="flex flex-col justify-center items-center rounded-2xl p-4 bg-surface-dark border border-border-dark text-center h-28">
+                    <p class="text-slate-400 text-base font-medium">Current Balance</p>
+                    <div class="flex items-center gap-2 mt-2">
+                         <span class="material-symbols-outlined text-primary text-3xl" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+                        <p id="profile-balance" class="text-white text-3xl font-bold">₹0</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col gap-2 mt-6">
+                <a href="history.html" class="flex items-center justify-between p-4 rounded-lg hover:bg-surface-dark transition-colors">
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center justify-center rounded-full bg-primary/10 size-10"><span class="material-symbols-outlined text-primary">monitoring</span></div>
+                        <p class="text-white text-base font-medium">My Earnings</p>
+                    </div>
+                    <span class="material-symbols-outlined text-slate-400">chevron_right</span>
+                </a>
+                <a href="#" onclick="showTab('wallet'); return false;" class="flex items-center justify-between p-4 rounded-lg hover:bg-surface-dark transition-colors">
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center justify-center rounded-full bg-primary/10 size-10"><span class="material-symbols-outlined text-primary">wallet</span></div>
+                        <p class="text-white text-base font-medium">Wallet</p>
+                    </div>
+                    <span class="material-symbols-outlined text-slate-400">chevron_right</span>
+                </a>
+                <hr class="border-border-dark my-2">
+                <a href="#" onclick="showTab('contact'); return false;" class="flex items-center justify-between p-4 rounded-lg hover:bg-surface-dark transition-colors">
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center justify-center rounded-full bg-primary/10 size-10"><span class="material-symbols-outlined text-primary">help</span></div>
+                        <p class="text-white text-base font-medium">Help & Support</p>
+                    </div>
+                    <span class="material-symbols-outlined text-slate-400">chevron_right</span>
+                </a>
+                <a href="#" id="logout-btn" class="flex items-center justify-between p-4 rounded-lg hover:bg-surface-dark transition-colors">
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center justify-center rounded-full bg-red-500/10 size-10"><span class="material-symbols-outlined text-red-500">logout</span></div>
+                        <p class="text-red-500 text-base font-medium">Log Out</p>
+                    </div>
+                    <span class="material-symbols-outlined text-slate-400">chevron_right</span>
+                </a>
+            </div>
+        </main>
+    </section>
+
+    <!-- Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-surface-dark/80 backdrop-blur-lg border-t border-border-dark p-2 z-20">
+        <div class="flex justify-around">
+            <button onclick="showTab('home')" class="nav-item flex flex-col items-center justify-center gap-1 text-primary w-16">
+                <span class="material-symbols-outlined fill">home</span>
+                <span class="text-xs font-bold">Home</span>
+            </button>
+            <button onclick="showTab('refer')" class="nav-item flex flex-col items-center justify-center gap-1 text-slate-400 w-16">
+                <span class="material-symbols-outlined">groups</span>
+                <span class="text-xs font-medium">Refer</span>
+            </button>
+            <button onclick="showTab('wallet')" class="nav-item flex flex-col items-center justify-center gap-1 text-slate-400 w-16">
+                <span class="material-symbols-outlined">account_balance_wallet</span>
+                <span class="text-xs font-medium">Wallet</span>
+            </button>
+            <button onclick="showTab('contact')" class="nav-item flex flex-col items-center justify-center gap-1 text-slate-400 w-16">
+                <span class="material-symbols-outlined">support_agent</span>
+                <span class="text-xs font-medium">Contact</span>
+            </button>
+            <button onclick="showTab('profile')" class="nav-item flex flex-col items-center justify-center gap-1 text-slate-400 w-16">
+                <span class="material-symbols-outlined">person</span>
+                <span class="text-xs font-medium">Profile</span>
+            </button>
+        </div>
+    </nav>
+</div>
+
+<!-- Container for All Dialogs -->
+<div id="dialog-container">
+    <!-- Withdrawal Processing Dialog -->
+    <div id="processing-dialog" class="dialog-overlay">
+        <div class="dialog-panel">
+            <div id="processing-content" class="w-full max-w-sm text-center">
+                <div class="flex justify-center items-center size-24 bg-surface-dark rounded-full mx-auto mb-6 border-4 border-border-dark">
+                    <span class="material-symbols-outlined text-5xl text-primary" style="font-variation-settings: 'FILL' 1;">account_balance_wallet</span>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-2">Processing Withdrawal</h3>
+                <p class="text-slate-400 mb-8">Please wait while we transfer the money...</p>
+                <div class="w-full bg-surface-dark rounded-full h-2.5 mb-2">
+                    <div class="bg-primary h-2.5 rounded-full progress-bar-inner"></div>
+                </div>
+                <p class="text-sm text-slate-400">Securely transferring funds to your account</p>
+            </div>
+            <div id="success-content" class="w-full max-w-sm text-center hidden">
+                <div class="flex justify-center items-center size-24 bg-primary/10 rounded-full mx-auto mb-6 border-4 border-primary">
+                     <span class="material-symbols-outlined text-5xl text-primary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                </div>
+                <h3 class="text-2xl font-bold text-white mb-2">Withdrawal Successful!</h3>
+                <p class="text-slate-400">The amount has been credited to your account.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Firebase Config ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBQHKJvI_FBqClddSho75Xz6w4vjXbt_w0",
+        authDomain: "spin-and-win-d4217.firebaseapp.com",
+        databaseURL: "https://spin-and-win-d4217-default-rtdb.firebaseio.com",
+        projectId: "spin-and-win-d4217",
+        storageBucket: "spin-and-win-d4217.firebasestorage.app",
+        messagingSenderId: "1000691452468",
+        appId: "1:1000691452468:web:723e6e050faf6423e99861"
+    };
+
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    const database = firebase.database();
+    const userId = localStorage.getItem('loggedInUserId');
+    if (!userId) { window.location.href = "login.html"; }
+
+    // --- Global State ---
+    let selectedPaymentMethod = 'upi';
+    let currentUserBalance = 0;
+    let currentUpiKey = null;
+    let currentBankKey = null;
+
+    // --- DOM Elements ---
+    const tabs = document.querySelectorAll('.tab-content');
+    const navItems = document.querySelectorAll('.nav-item');
+    const dialogContainer = document.getElementById('dialog-container');
+
+    // --- Tab Navigation ---
+    function showTab(tabName) {
+        tabs.forEach(tab => {
+            tab.classList.remove('active');
+            tab.style.display = 'none';
+        });
+        const activeTab = document.getElementById(`${tabName}-tab`);
+        if (activeTab) {
+            activeTab.classList.add('active');
+             // Use flex for contact tab to enable footer behavior
+            activeTab.style.display = (tabName === 'contact') ? 'flex' : 'block';
+        }
+
+        navItems.forEach(item => {
+            const icon = item.querySelector('.material-symbols-outlined');
+            const text = item.querySelector('span:last-child');
+            const isActive = item.getAttribute('onclick') === `showTab('${tabName}')`;
+            item.classList.toggle('text-primary', isActive);
+            item.classList.toggle('text-slate-400', !isActive);
+            text.classList.toggle('font-bold', isActive);
+            text.classList.toggle('font-medium', !isActive);
+            icon.classList.toggle('fill', isActive);
+        });
+
+        if (tabName === 'wallet') {
+            selectPaymentMethod('upi');
+        }
+        if (tabName === 'refer') {
+            loadAndDisplayReferralCode();
+        }
+    }
+
+    // --- Data Loading ---
+    function loadUserData() {
+        database.ref('users/' + userId).on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                const name = data.name || "User";
+                currentUserBalance = parseFloat(data.balance || "0");
+                const coins = data.Coin || 0;
+                const avatarUrl = data.avatarUrl || `https://ui-avatars.com/api/?name=${name.charAt(0)}&background=193324&color=13ec6a&bold=true&size=128`;
+
+                document.getElementById('user-name-home').innerText = name;
+                document.getElementById('user-coins-home').innerText = coins;
+                document.getElementById('user-balance-home').innerText = `₹${currentUserBalance.toFixed(2)}`;
+                document.getElementById('user-avatar-home').innerText = name.charAt(0).toUpperCase();
+                document.getElementById('header-balance').innerText = `₹${currentUserBalance.toFixed(2)}`;
+                document.getElementById('user-name-profile').innerText = name;
+                document.getElementById('profile-coins').innerText = coins;
+                document.getElementById('profile-balance').innerText = `₹${currentUserBalance.toFixed(2)}`;
+                document.getElementById('user-avatar-profile-img').style.backgroundImage = `url('${avatarUrl}')`;
+            }
+        });
+    }
+    
+    // --- Profile Tab Logic ---
+    document.getElementById('edit-profile-btn').addEventListener('click', () => alert("Edit profile functionality coming soon!"));
+    document.getElementById('logout-btn').addEventListener('click', () => {
+        localStorage.removeItem('loggedInUserId');
+        window.location.href = 'login.html';
+    });
+
+    // --- Refer Tab Logic ---
+    const referralCodeDisplay = document.getElementById('referral-code-display');
+    const copyBtn = document.getElementById('copy-btn');
+    const shareBtn = document.getElementById('share-btn');
+    const referralInput = document.getElementById('referral-input');
+    const submitBtn = document.getElementById('submit-btn');
+
+    function generateReferralCode() { return Math.random().toString(36).substring(2, 10).toUpperCase(); }
+
+    function loadAndDisplayReferralCode() {
+        const referRef = database.ref('Refer');
+        referRef.orderByChild('UserId').equalTo(userId).once('value', (snapshot) => {
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                const key = Object.keys(data)[0];
+                referralCodeDisplay.textContent = data[key].code;
+            } else {
+                const newCode = generateReferralCode();
+                referRef.push({ code: newCode, UserId: userId }).then(() => {
+                    referralCodeDisplay.textContent = newCode;
+                });
+            }
+        });
+    }
+
+    copyBtn.addEventListener('click', () => {
+        const codeToCopy = referralCodeDisplay.textContent;
+        if (codeToCopy && codeToCopy !== 'LOADING...') {
+            navigator.clipboard.writeText(codeToCopy).then(() => alert('Referral code copied!'));
+        }
+    });
+
+    shareBtn.addEventListener('click', () => {
+        const referralCode = referralCodeDisplay.textContent;
+        if (referralCode && referralCode !== 'LOADING...') {
+            const shareText = `Join me on Spin & Win! Use my referral code to get a bonus: ${referralCode}`;
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+    });
+
+    submitBtn.addEventListener('click', () => {
+        const enteredCode = referralInput.value.trim().toUpperCase();
+        if (!enteredCode) { alert('Please enter a referral code.'); return; }
+
+        database.ref('users/' + userId + '/usedReferral').once('value', (snapshot) => {
+            if (snapshot.exists() && snapshot.val() === true) {
+                alert('You have already used a referral code.'); return;
+            }
+            database.ref('Refer').orderByChild('code').equalTo(enteredCode).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const referData = snapshot.val();
+                    const key = Object.keys(referData)[0];
+                    const referrerId = referData[key].UserId;
+                    if (referrerId === userId) {
+                        alert("You cannot use your own referral code."); return;
+                    }
+                    const updates = {};
+                    updates[`/users/${userId}/balance`] = firebase.database.ServerValue.increment(50);
+                    updates[`/users/${userId}/usedReferral`] = true;
+                    updates[`/users/${referrerId}/balance`] = firebase.database.ServerValue.increment(100);
+                    database.ref().update(updates).then(() => {
+                        alert('Referral successful! You received ₹50 as a bonus.');
+                        referralInput.value = '';
+                    });
+                } else {
+                    alert('Invalid referral code.');
+                }
+            });
+        });
+    });
+
+    // --- Wallet Tab (Withdrawal) Logic ---
+    const paymentDetailsContainer = document.getElementById('payment-details-container');
+    const withdrawAmountInput = document.getElementById('withdraw-amount-input');
+    const processingDialog = document.getElementById('processing-dialog');
+    const processingContent = document.getElementById('processing-content');
+    const successContent = document.getElementById('success-content');
+    
+    function selectPaymentMethod(method) {
+        selectedPaymentMethod = method;
+        const upiMethodDiv = document.getElementById('upi-method');
+        const bankMethodDiv = document.getElementById('bank-method');
+        const upiCheck = document.getElementById('upi-check');
+        const bankCheck = document.getElementById('bank-check');
+
+        upiMethodDiv.classList.toggle('border-primary', method === 'upi');
+        upiMethodDiv.classList.toggle('border-border-dark', method !== 'upi');
+        upiCheck.innerHTML = method === 'upi' ? `<span class="material-symbols-outlined text-white bg-primary rounded-full" style="font-size: 18px;">check</span>` : '';
+        
+        bankMethodDiv.classList.toggle('border-primary', method === 'bank');
+        bankMethodDiv.classList.toggle('border-border-dark', method !== 'bank');
+        bankCheck.innerHTML = method === 'bank' ? `<span class="material-symbols-outlined text-white bg-primary rounded-full" style="font-size: 18px;">check</span>` : '';
+        bankCheck.classList.toggle('border-2', method !== 'bank');
+        bankCheck.classList.toggle('border-slate-500', method !== 'bank');
+        
+        updatePaymentDetailsView();
+    }
+
+    function updatePaymentDetailsView() {
+        paymentDetailsContainer.innerHTML = '';
+        if (selectedPaymentMethod === 'upi') loadAndDisplayUpi();
+        else if (selectedPaymentMethod === 'bank') loadAndDisplayBank();
+    }
+
+    function loadAndDisplayUpi() {
+        database.ref('Upi').orderByChild('UserId').equalTo(userId).once('value', (snapshot) => {
+            if (snapshot.exists()) {
+                snapshot.forEach(childSnapshot => {
+                    currentUpiKey = childSnapshot.key;
+                    const upiData = childSnapshot.val();
+                    paymentDetailsContainer.innerHTML = `
+                        <div class="flex justify-between items-center rounded-2xl border border-border-dark bg-surface-dark p-4">
+                            <div>
+                                <p class="text-sm text-slate-400">Your UPI ID:</p>
+                                <p class="text-lg font-bold text-white">${upiData.UpiId}</p>
+                            </div>
+                            <button onclick="openViewDialog('upi', ${JSON.stringify(upiData).replace(/"/g, '&quot;')})" class="text-primary"><span class="material-symbols-outlined">edit</span></button>
+                        </div>`;
+                });
+            } else {
+                currentUpiKey = null;
+                paymentDetailsContainer.innerHTML = `<button onclick="openDialog('add-upi-dialog')" class="flex items-center justify-center gap-2 py-3 w-full transition-colors"><span class="material-symbols-outlined text-primary" style="font-size: 20px;">add_circle</span><span class="text-primary text-base font-semibold">Add Your UPI ID</span></button>`;
+            }
+        });
+    }
+
+    function loadAndDisplayBank() {
+        database.ref('Bank').orderByChild('UserId').equalTo(userId).once('value', (snapshot) => {
+            if (snapshot.exists()) {
+                snapshot.forEach(childSnapshot => {
+                    currentBankKey = childSnapshot.key;
+                    const bankData = childSnapshot.val();
+                    paymentDetailsContainer.innerHTML = `
+                        <div class="flex justify-between items-center rounded-2xl border border-border-dark bg-surface-dark p-4">
+                            <div>
+                                <p class="text-lg font-bold text-white">${bankData.HolderName}</p>
+                                <p class="text-sm text-slate-400">${bankData.BankName} - A/C: ...${bankData.AccountNumber.slice(-4)}</p>
+                            </div>
+                            <button onclick="openViewDialog('bank', ${JSON.stringify(bankData).replace(/"/g, '&quot;')})" class="text-primary"><span class="material-symbols-outlined">edit</span></button>
+                        </div>`;
+                });
+            } else {
+                currentBankKey = null;
+                paymentDetailsContainer.innerHTML = `<button onclick="openDialog('add-bank-dialog')" class="flex items-center justify-center gap-2 py-3 w-full transition-colors"><span class="material-symbols-outlined text-primary" style="font-size: 20px;">add_circle</span><span class="text-primary text-base font-semibold">Add Your Bank Account</span></button>`;
+            }
+        });
+    }
+
+    async function handleWithdrawal() {
+        const amountToWithdraw = parseFloat(withdrawAmountInput.value);
+        if (isNaN(amountToWithdraw) || amountToWithdraw <= 0) {
+            alert("Please enter a valid amount."); return;
+        }
+        if (amountToWithdraw > currentUserBalance) {
+            alert("Insufficient balance."); return;
+        }
+
+        const now = new Date();
+        const withdrawalData = {
+            amount: amountToWithdraw,
+            Status: "pending",
+            Time: now.toLocaleTimeString('en-US'),
+            Date: now.toLocaleDateString('en-GB'), // dd/mm/yyyy
+            userId: userId
+        };
+
+        if (selectedPaymentMethod === 'upi') {
+            if (!currentUpiKey) { alert("Please add your UPI ID before withdrawing."); return; }
+            const upiSnapshot = await database.ref('Upi/' + currentUpiKey).once('value');
+            withdrawalData.Upi = upiSnapshot.val();
+        } else if (selectedPaymentMethod === 'bank') {
+            if (!currentBankKey) { alert("Please add your Bank Account before withdrawing."); return; }
+            const bankSnapshot = await database.ref('Bank/' + currentBankKey).once('value');
+            withdrawalData.Bank = bankSnapshot.val();
+        }
+
+        // Show Processing Dialog
+        processingContent.classList.remove('hidden');
+        successContent.classList.add('hidden');
+        processingDialog.classList.add('open');
+        
+        // Simulate processing and then update database
+        setTimeout(() => {
+            const newWithdrawalKey = database.ref().child('withdrawals').push().key;
+            const updates = {};
+            updates['/withdrawals/' + newWithdrawalKey] = withdrawalData;
+            updates['/users/' + userId + '/balance'] = firebase.database.ServerValue.increment(-amountToWithdraw);
+
+            database.ref().update(updates).then(() => {
+                // Show success message
+                processingContent.classList.add('hidden');
+                successContent.classList.remove('hidden');
+                withdrawAmountInput.value = '';
+                // Close dialog after a delay
+                setTimeout(() => {
+                    processingDialog.classList.remove('open');
+                }, 2000);
+            }).catch(error => {
+                alert("Transaction failed: " + error.message);
+                processingDialog.classList.remove('open');
+            });
+        }, 3000); // 3-second delay for progress bar animation
+    }
+
+
+    document.getElementById('upi-method').addEventListener('click', () => selectPaymentMethod('upi'));
+    document.getElementById('bank-method').addEventListener('click', () => selectPaymentMethod('bank'));
+    document.getElementById('amount-buttons').addEventListener('click', (e) => {
+        const button = e.target.closest('button');
+        if (button && button.dataset.amount) {
+            withdrawAmountInput.value = button.dataset.amount;
+        }
+    });
+    document.getElementById('withdraw-btn').addEventListener('click', handleWithdrawal);
+
+    // --- Dialog Management ---
+    function openDialog(dialogId) { document.getElementById(dialogId).classList.add('open'); }
+    function closeDialog(dialogId) { document.getElementById(dialogId).classList.remove('open'); }
+
+    function openViewDialog(type, data) {
+        if (type === 'upi') {
+            document.getElementById('view-upi-id-input').value = data.UpiId;
+            openDialog('view-upi-dialog');
+        } else if (type === 'bank') {
+            document.getElementById('view-bank-holder-input').value = data.HolderName;
+            document.getElementById('view-bank-name-input').value = data.BankName;
+            document.getElementById('view-bank-account-input').value = data.AccountNumber;
+            document.getElementById('view-bank-ifsc-input').value = data.IFSC;
+            openDialog('view-bank-dialog');
+        }
+    }
+
+    function renderAllDialogs() {
+        const extraDialogs = `
+            <!-- Add UPI Dialog -->
+            <div id="add-upi-dialog" class="dialog-overlay"><div class="dialog-panel"><h3 class="text-lg font-bold text-white mb-4">Add UPI ID</h3><input id="add-upi-id-input" type="text" placeholder="yourname@upi" class="w-full bg-background-dark border-border-dark rounded-lg text-white mb-4"><div class="flex gap-2"><button onclick="closeDialog('add-upi-dialog')" class="flex-1 h-10 rounded-lg bg-surface-dark text-white">Cancel</button><button id="save-upi-btn" class="flex-1 h-10 rounded-lg bg-primary text-black font-bold">Save</button></div></div></div>
+            <!-- View/Edit UPI Dialog -->
+            <div id="view-upi-dialog" class="dialog-overlay"><div class="dialog-panel"><h3 class="text-lg font-bold text-white mb-4">Edit UPI ID</h3><input id="view-upi-id-input" type="text" class="w-full bg-background-dark border-border-dark rounded-lg text-white mb-4"><div class="flex gap-2"><button onclick="closeDialog('view-upi-dialog')" class="flex-1 h-10 rounded-lg bg-surface-dark text-white">Cancel</button><button id="update-upi-btn" class="flex-1 h-10 rounded-lg bg-primary text-black font-bold">Update</button></div></div></div>
+            <!-- Add Bank Dialog -->
+            <div id="add-bank-dialog" class="dialog-overlay"><div class="dialog-panel space-y-3"><h3 class="text-lg font-bold text-white">Add Bank Account</h3><input id="add-bank-holder-input" type="text" placeholder="Account Holder Name" class="w-full bg-background-dark border-border-dark rounded-lg text-white"><input id="add-bank-name-input" type="text" placeholder="Bank Name" class="w-full bg-background-dark border-border-dark rounded-lg text-white"><input id="add-bank-account-input" type="number" placeholder="Account Number" class="w-full bg-background-dark border-border-dark rounded-lg text-white"><input id="add-bank-ifsc-input" type="text" placeholder="IFSC Code" class="w-full bg-background-dark border-border-dark rounded-lg text-white"><div class="flex gap-2 pt-2"><button onclick="closeDialog('add-bank-dialog')" class="flex-1 h-10 rounded-lg bg-surface-dark text-white">Cancel</button><button id="save-bank-btn" class="flex-1 h-10 rounded-lg bg-primary text-black font-bold">Save</button></div></div></div>
+            <!-- View/Edit Bank Dialog -->
+            <div id="view-bank-dialog" class="dialog-overlay"><div class="dialog-panel space-y-3"><h3 class="text-lg font-bold text-white">Edit Bank Account</h3><input id="view-bank-holder-input" type="text" placeholder="Account Holder Name" class="w-full bg-background-dark border-border-dark rounded-lg text-white"><input id="view-bank-name-input" type="text" placeholder="Bank Name" class="w-full bg-background-dark border-border-dark rounded-lg text-white"><input id="view-bank-account-input" type="number" placeholder="Account Number" class="w-full bg-background-dark border-border-dark rounded-lg text-white"><input id="view-bank-ifsc-input" type="text" placeholder="IFSC Code" class="w-full bg-background-dark border-border-dark rounded-lg text-white"><div class="flex gap-2 pt-2"><button onclick="closeDialog('view-bank-dialog')" class="flex-1 h-10 rounded-lg bg-surface-dark text-white">Cancel</button><button id="update-bank-btn" class="flex-1 h-10 rounded-lg bg-primary text-black font-bold">Update</button></div></div></div>
+        `;
+        dialogContainer.insertAdjacentHTML('beforeend', extraDialogs);
+
+        document.getElementById('save-upi-btn').addEventListener('click', saveUpiDetails);
+        document.getElementById('update-upi-btn').addEventListener('click', updateUpiDetails);
+        document.getElementById('save-bank-btn').addEventListener('click', saveBankDetails);
+        document.getElementById('update-bank-btn').addEventListener('click', updateBankDetails);
+    }
+
+    function saveUpiDetails() {
+        const upiId = document.getElementById('add-upi-id-input').value.trim();
+        if (!upiId) { alert('Please enter a UPI ID.'); return; }
+        database.ref('Upi').push({ UserId: userId, UpiId: upiId }).then(() => {
+            closeDialog('add-upi-dialog');
+            updatePaymentDetailsView();
+        });
+    }
+    function updateUpiDetails() {
+        const upiId = document.getElementById('view-upi-id-input').value.trim();
+        if (!upiId) { alert('Please enter a UPI ID.'); return; }
+        if (!currentUpiKey) { alert('Error: No UPI selected.'); return; }
+        database.ref('Upi/' + currentUpiKey).update({ UpiId: upiId }).then(() => {
+            closeDialog('view-upi-dialog');
+            updatePaymentDetailsView();
+        });
+    }
+    function saveBankDetails() {
+        const holderName = document.getElementById('add-bank-holder-input').value.trim();
+        const bankName = document.getElementById('add-bank-name-input').value.trim();
+        const accountNumber = document.getElementById('add-bank-account-input').value.trim();
+        const ifsc = document.getElementById('add-bank-ifsc-input').value.trim();
+        if (!holderName || !bankName || !accountNumber || !ifsc) { alert('Please fill all fields.'); return; }
+        database.ref('Bank').push({ UserId: userId, HolderName: holderName, BankName: bankName, AccountNumber: accountNumber, IFSC: ifsc }).then(() => {
+            closeDialog('add-bank-dialog');
+            updatePaymentDetailsView();
+        });
+    }
+    function updateBankDetails() {
+        const holderName = document.getElementById('view-bank-holder-input').value.trim();
+        const bankName = document.getElementById('view-bank-name-input').value.trim();
+        const accountNumber = document.getElementById('view-bank-account-input').value.trim();
+        const ifsc = document.getElementById('view-bank-ifsc-input').value.trim();
+        if (!holderName || !bankName || !accountNumber || !ifsc) { alert('Please fill all fields.'); return; }
+        if (!currentBankKey) { alert('Error: No bank account selected.'); return; }
+        database.ref('Bank/' + currentBankKey).update({ HolderName: holderName, BankName: bankName, AccountNumber: accountNumber, IFSC: ifsc }).then(() => {
+            closeDialog('view-bank-dialog');
+            updatePaymentDetailsView();
+        });
+    }
+
+    // --- Contact Tab Logic ---
+    const chatContainer = document.getElementById('chat-container');
+    const messageInput = document.getElementById('message-input');
+    const sendBtn = document.getElementById('send-btn');
+    const optionButtonsContainer = document.getElementById('option-buttons');
+
+    function sendMessage(messageText) {
+        if (!messageText.trim()) return;
+
+        database.ref('contact/messages').push({
+            userId: userId, message: messageText, timestamp: new Date().toISOString()
+        }).then(() => {
+            displayUserMessage(messageText);
+            messageInput.value = '';
+            getAutoReply(messageText);
+        }).catch(error => alert("Failed to send message."));
+    }
+
+    function displayUserMessage(messageText) {
+        const userMessageHTML = `<div class="flex items-start justify-end gap-3"><div class="flex flex-1 flex-col gap-1 items-end"><p class="text-base font-normal leading-normal flex max-w-[360px] rounded-2xl px-4 py-3 bg-contact-primary text-contact-bg-dark">${messageText}</p></div></div>`;
+        chatContainer.insertAdjacentHTML('beforeend', userMessageHTML);
+        scrollToBottom();
+    }
+
+    function displayBotMessage(messageText) {
+        const botMessageHTML = `<div class="flex items-start gap-3"><div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-10 shrink-0" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC3NejJRgLWe0L13dtxO-14xi4Kc2yNhIqMJEJHAzslXGVeetqoKE0j2SQvOQwQjUe8Jt8aoCEc86bEpBnQaaMrQ2ZNmGyExYNHMqAocAR5BZfNIqCNkiB7P7egOvcL2Kw9v40Xjnb63soD8p1WU0dpDnpfbtDpT9zlK7sTerUk2MG7ZnJSDAvk3yVhqvL_fcuT_kMKKd4FxqQdHcjnpGWxQWfAXbhYHOXFYgJNbn8n9V9vbIBPA3FuRiGqMBxIMuODd_E6JDbgM6w");'></div><div class="flex flex-1 flex-col gap-2 items-start"><p class="text-contact-text-dark text-[13px] font-normal">Game Assistant</p><p class="text-base font-normal leading-normal flex max-w-[360px] rounded-2xl px-4 py-3 bg-contact-surface-dark text-white">${messageText}</p></div></div>`;
+        chatContainer.insertAdjacentHTML('beforeend', botMessageHTML);
+        scrollToBottom();
+    }
+    
+    function showTypingIndicator() {
+        const typingHTML = `<div class="flex items-start gap-3" id="typing-indicator"><div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-10 shrink-0" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuC3NejJRgLWe0L13dtxO-14xi4Kc2yNhIqMJEJHAzslXGVeetqoKE0j2SQvOQwQjUe8Jt8aoCEc86bEpBnQaaMrQ2ZNmGyExYNHMqAocAR5BZfNIqCNkiB7P7egOvcL2Kw9v40Xjnb63soD8p1WU0dpDnpfbtDpT9zlK7sTerUk2MG7ZnJSDAvk3yVhqvL_fcuT_kMKKd4FxqQdHcjnpGWxQWfAXbhYHOXFYgJNbn8n9V9vbIBPA3FuRiGqMBxIMuODd_E6JDbgM6w");'></div><div class="flex flex-1 flex-col gap-2 items-start"><p class="text-contact-text-dark text-[13px] font-normal">Game Assistant</p><p class="text-base font-normal leading-normal flex max-w-[360px] rounded-2xl px-4 py-3 bg-contact-surface-dark text-white typing"></p></div></div>`;
+        chatContainer.insertAdjacentHTML('beforeend', typingHTML);
+        scrollToBottom();
+    }
+
+    function removeTypingIndicator() {
+        const indicator = document.getElementById('typing-indicator');
+        if (indicator) indicator.remove();
+    }
+
+    function getAutoReply(userMessage) {
+        showTypingIndicator();
+        database.ref('contact/Auto').once('value', (snapshot) => {
+            const autoReplies = snapshot.val();
+            let reply = "Thank you for your message. We will get back to you soon."; // Default reply
+            if (autoReplies && autoReplies[userMessage]) {
+                reply = autoReplies[userMessage];
+            }
+            setTimeout(() => {
+                removeTypingIndicator();
+                displayBotMessage(reply);
+            }, 1500);
+        });
+    }
+
+    function scrollToBottom() { chatContainer.scrollTop = chatContainer.scrollHeight; }
+
+    sendBtn.addEventListener('click', () => sendMessage(messageInput.value));
+    messageInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && !event.shiftKey) {
+            event.preventDefault();
+            sendMessage(messageInput.value);
+        }
+    });
+
+    optionButtonsContainer.querySelectorAll('.option-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            sendMessage(button.textContent.trim());
+        });
+    });
+
+    // --- Initial Load ---
+    document.addEventListener('DOMContentLoaded', () => {
+        renderAllDialogs();
+        loadUserData();
+        showTab('home');
+    });
+</script>
+
+</body>
+</html>

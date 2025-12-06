@@ -1,0 +1,68 @@
+
+<!DOCTYPE html>
+<html class="dark" lang="bn">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>ওয়েলকাম স্ক্রিন</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            // UPDATED: High-quality, vibrant color scheme
+            "primary": "#13ec6a", 
+            "background-light": "#f5f7f8",
+            "background-dark": "#0F1A14",
+            "text-dark": "#0d131c",
+            "text-light": "#E0E0E0",
+            "text-secondary-dark": "#A0A0A0",
+            "text-secondary-light": "#52525b",
+          },
+          fontFamily: {
+            "display": ["Plus Jakarta Sans", "Noto Sans Bengali", "sans-serif"]
+          },
+          borderRadius: {
+            "DEFAULT": "1rem",
+            "lg": "2rem",
+            "xl": "3rem",
+            "full": "9999px"
+          },
+        },
+      },
+    }
+</script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    body {
+      min-height: 100dvh;
+    }
+</style>
+</head>
+<body class="font-display">
+<div class="relative flex h-screen w-full flex-col bg-background-light dark:bg-background-dark group/design-root overflow-hidden">
+    <div class="flex flex-1 flex-col justify-between items-center w-full max-w-md mx-auto p-6">
+        <div class="w-full flex-1 flex flex-col items-center justify-center text-center">
+            <div class="w-full max-w-[300px] sm:max-w-[350px] aspect-square flex items-center justify-center mb-8">
+                <div class="w-full h-full bg-center bg-no-repeat bg-contain" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBygx-8BsOfVwPm6NerVc78D15aNx5OJUzodDWt5_BLwwuqGdni7wAUZNW20ugkCy_VHIK6VNkx2kekaoQH36WRgP9yxfpBAKkoKTE8BjqrU9WPYI04A6h2kHRZnsMLbSYF06XfSaKlVWHy-rK4VzifQQL3wAHhueVWVRFqxIc62Ggc6lCXxWnrhnIAqYWlr0SQ4dd97fBcNg6qQPBLbszwdnbdAB2daj_AQbwOROVp9o6sKJ7ly4PlBVhncUvnqD9oZ5PjPO7FAYcm");'></div>
+            </div>
+            <h1 class="text-text-dark dark:text-text-light tracking-tight text-[32px] font-bold leading-tight px-4 pb-2">Welcome to Spin & Win!</h1>
+            <p class="text-text-secondary-light dark:text-text-secondary-dark text-base font-normal leading-normal pb-8 px-4">Complete simple tasks, scratch cards, and win exciting rewards!</p>
+        </div>
+        <div class="w-full px-4">
+            <!-- UPDATED: onclick event added -->
+            <button onclick="window.location.href='login.html'" class="flex w-full min-w-[84px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-5 bg-primary text-black text-base font-bold leading-normal tracking-[0.015em] hover:bg-primary/90 transition-colors">
+                <span class="truncate">Get Started</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

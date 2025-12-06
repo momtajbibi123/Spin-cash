@@ -1,0 +1,241 @@
+
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Referral Screen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#13ec6a",
+              "background-light": "#f6f8f7",
+              "background-dark": "#102217",
+            },
+            fontFamily: {
+              "display": ["Plus Jakarta Sans", "Noto Sans", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "1.5rem", "xl": "2rem", "full": "9999px"},
+          },
+        },
+      }
+</script>
+<style>
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        font-size: 24px;
+    }
+    body {
+      min-height: 100dvh;
+    }
+</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark">
+<div class="relative flex h-auto min-h-screen w-full flex-col font-display group/design-root overflow-x-hidden">
+    <div class="flex items-center bg-background-light dark:bg-background-dark p-4 pb-2 justify-between sticky top-0 z-10">
+        <button onclick="history.back()" class="flex size-12 shrink-0 items-center justify-start text-black dark:text-white">
+            <span class="material-symbols-outlined">arrow_back_ios_new</span>
+        </button>
+        <h2 class="text-black dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Referral Program</h2>
+        <div class="w-12"></div> 
+    </div>
+    <main class="flex-1 px-4 py-2">
+        <div class="@container">
+            <div class="w-full">
+                <div class="bg-cover bg-center flex flex-col justify-end overflow-hidden rounded-lg min-h-[200px]" style='background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 40%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuAtVQmnZTDSZpEavmcbZ7koUzh80jYMt76hkuT26D768e5eRcaAwE8nlTvPnkRBI34K_2TRLqqGOWvuAFsXvlSfPb0pdt4EY2iHu9_0IvURcg4vwlmPJQVIJl6LLehx6qouZVZx_zqZkXnxy_ZAQAOuKER_uRwX1lmTEvc9opJuyZvdOKLzkhU5RoEPwRDeEVKJlrPKKqjToRIFiGtlyreTwuuaOLScq92r4ebP8vQUsaPMIdt43zHVO_oyBMJVNk78RBhtbdclYkht");'>
+                    <div class="flex p-5">
+                        <p class="text-white tracking-light text-[28px] font-bold leading-tight">Invite Friends, Earn Rewards</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mt-6 flex flex-col gap-4 rounded-lg border border-zinc-200/50 dark:border-zinc-800/80 bg-white/5 dark:bg-zinc-900/40 p-5">
+            <div class="flex flex-col items-start gap-1">
+                <p class="text-black dark:text-white text-lg font-bold leading-tight tracking-[-0.015em]">Share Your Code</p>
+                <p class="text-zinc-600 dark:text-zinc-400 text-base font-normal leading-normal">Share your unique code with friends. You both get bonus coins when they sign up.</p>
+            </div>
+            <div class="flex items-center justify-between rounded-lg border border-dashed border-primary/50 bg-primary/10 dark:bg-primary/20 p-4">
+                <span id="referral-code-display" class="text-lg font-bold tracking-widest text-primary dark:text-primary">LOADING...</span>
+                <button id="copy-btn" aria-label="Copy referral code" class="flex items-center justify-center text-primary dark:text-primary">
+                    <span class="material-symbols-outlined">content_copy</span>
+                </button>
+            </div>
+            <button id="share-btn" class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-6 bg-primary text-background-dark text-base font-bold leading-normal mt-2">
+                <span class="truncate">Share Now</span>
+            </button>
+        </div>
+        <div class="mt-4 text-center">
+            <a class="text-sm font-medium text-primary dark:text-primary hover:underline" href="#">
+                Terms &amp; Conditions apply
+            </a>
+        </div>
+        <h2 class="text-black dark:text-white tracking-light text-2xl font-bold leading-tight text-left pb-1 pt-8">Have a Referral Code?</h2>
+        <p class="text-zinc-600 dark:text-zinc-400 text-base font-normal leading-normal pb-3">Enter a code from a friend to get your welcome bonus.</p>
+        <div class="flex items-center gap-3">
+            <input id="referral-input" class="flex-1 appearance-none bg-zinc-100 dark:bg-zinc-800/80 border-none text-black dark:text-white placeholder-zinc-500 dark:placeholder-zinc-400 rounded-lg h-12 px-4 focus:outline-none focus:ring-2 focus:ring-primary/50 transition duration-200" placeholder="Enter friend's referral code" type="text"/>
+            <button id="submit-btn" class="flex min-w-[100px] max-w-[480px] cursor-pointer items-center justify-center overflow-hidden rounded-full h-12 px-4 bg-primary text-background-dark text-base font-bold leading-normal">
+                <span class="truncate">Submit</span>
+            </button>
+        </div>
+    </main>
+    <div class="h-8 bg-background-light dark:bg-background-dark"></div> 
+</div>
+
+<script>
+    // --- Firebase Configuration ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBQHKJvI_FBqClddSho75Xz6w4vjXbt_w0",
+        authDomain: "spin-and-win-d4217.firebaseapp.com",
+        databaseURL: "https://spin-and-win-d4217-default-rtdb.firebaseio.com",
+        projectId: "spin-and-win-d4217",
+        storageBucket: "spin-and-win-d4217.firebasestorage.app",
+        messagingSenderId: "1000691452468",
+        appId: "1:1000691452468:web:723e6e050faf6423e99861"
+    };
+
+    // --- Initialize Firebase ---
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    const database = firebase.database();
+
+    // --- Get User ID from Local Storage ---
+    const userId = localStorage.getItem('loggedInUserId');
+    if (!userId) {
+        window.location.href = "login.html";
+    }
+
+    // --- DOM Elements ---
+    const referralCodeDisplay = document.getElementById('referral-code-display');
+    const copyBtn = document.getElementById('copy-btn');
+    const shareBtn = document.getElementById('share-btn');
+    const referralInput = document.getElementById('referral-input');
+    const submitBtn = document.getElementById('submit-btn');
+
+    // --- Function to generate a random referral code ---
+    function generateReferralCode() {
+        return Math.random().toString(36).substring(2, 10).toUpperCase();
+    }
+
+    // --- Function to load or generate user's referral code ---
+    function loadAndDisplayReferralCode() {
+        const referRef = database.ref('Refer');
+        // Query to find if a code already exists for this user
+        referRef.orderByChild('UserId').equalTo(userId).once('value', (snapshot) => {
+            if (snapshot.exists()) {
+                // If code exists, display it
+                const data = snapshot.val();
+                const key = Object.keys(data)[0];
+                const existingCode = data[key].code;
+                referralCodeDisplay.textContent = existingCode;
+            } else {
+                // If no code exists, generate a new one, save it, and then display it
+                const newCode = generateReferralCode();
+                const newReferralData = {
+                    code: newCode,
+                    UserId: userId
+                };
+                // Save the new code to the 'Refer' folder
+                referRef.push(newReferralData).then(() => {
+                    referralCodeDisplay.textContent = newCode;
+                }).catch(error => {
+                    console.error("Error saving new referral code:", error);
+                    referralCodeDisplay.textContent = "ERROR";
+                });
+            }
+        }).catch(error => {
+            console.error("Error querying referral data:", error);
+            referralCodeDisplay.textContent = "QUERY_ERROR";
+        });
+    }
+
+    // --- Event Listener for Copy Button ---
+    copyBtn.addEventListener('click', () => {
+        const codeToCopy = referralCodeDisplay.textContent;
+        if (codeToCopy && codeToCopy !== 'LOADING...' && codeToCopy !== 'ERROR') {
+            navigator.clipboard.writeText(codeToCopy).then(() => {
+                alert('Referral code copied to clipboard!');
+            });
+        }
+    });
+
+    // --- Event Listener for Share Button ---
+    shareBtn.addEventListener('click', () => {
+        const referralCode = referralCodeDisplay.textContent;
+        if (referralCode && referralCode !== 'LOADING...' && referralCode !== 'ERROR') {
+            const shareText = `Join me on Spin & Win! Use my referral code to get a bonus: ${referralCode}`;
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+    });
+
+    // --- Event Listener for Submit Button ---
+    submitBtn.addEventListener('click', () => {
+        const enteredCode = referralInput.value.trim().toUpperCase();
+        if (!enteredCode) {
+            alert('Please enter a referral code.');
+            return;
+        }
+
+        database.ref('users/' + userId + '/usedReferral').once('value', (snapshot) => {
+            if (snapshot.exists() && snapshot.val() === true) {
+                alert('You have already used a referral code.');
+                return;
+            }
+
+            // Query the 'Refer' folder to find the owner of the entered code
+            database.ref('Refer').orderByChild('code').equalTo(enteredCode).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const referData = snapshot.val();
+                    const key = Object.keys(referData)[0];
+                    const referrerId = referData[key].UserId;
+
+                    if (referrerId === userId) {
+                        alert("You cannot use your own referral code.");
+                        return;
+                    }
+
+                    const updates = {};
+                    // Add ₹50 to the current user
+                    updates[`/users/${userId}/balance`] = firebase.database.ServerValue.increment(50);
+                    updates[`/users/${userId}/usedReferral`] = true;
+                    
+                    // Add ₹100 to the referrer
+                    updates[`/users/${referrerId}/balance`] = firebase.database.ServerValue.increment(100);
+
+                    database.ref().update(updates)
+                        .then(() => {
+                            alert('Referral successful! You received ₹50 as a bonus.');
+                            referralInput.value = '';
+                        })
+                        .catch((error) => {
+                            alert('An error occurred. Please try again.');
+                            console.error("Firebase update error:", error);
+                        });
+
+                } else {
+                    alert('Invalid referral code. Please check and try again.');
+                }
+            });
+        });
+    });
+
+    // --- Initial Load ---
+    document.addEventListener('DOMContentLoaded', () => {
+        loadAndDisplayReferralCode();
+    });
+</script>
+
+</body>
+</html>

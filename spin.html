@@ -1,0 +1,324 @@
+
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Spin & Win</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<!-- Confetti Library -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#ee9d2b",
+            "background-dark": "#121212",
+            "card-dark": "#1E1E1E",
+            "text-light": "#E0E0E0",
+            "text-secondary": "#A0A0A0",
+          },
+          fontFamily: { "display": ["Plus Jakarta Sans", "sans-serif"] },
+          borderRadius: { "lg": "2rem", "full": "9999px" },
+        },
+      },
+    }
+</script>
+<style>
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .wheel-container { position: relative; width: 300px; height: 300px; margin: 0 auto; }
+    .wheel { width: 100%; height: 100%; border-radius: 50%; border: 8px solid #2c3e50; box-shadow: 0 0 20px rgba(0,0,0,0.5); position: relative; overflow: hidden; transition: transform 12s cubic-bezier(0.17, 0.67, 0.12, 0.99); transform: rotate(0deg); }
+    .wheel-inner { width: 100%; height: 100%; border-radius: 50%; position: relative; }
+    .wheel-number { position: absolute; top: 50%; left: 50%; transform-origin: center; font-size: 24px; font-weight: 800; color: white; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); user-select: none; z-index: 5; }
+    .center-hub { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50px; height: 50px; background-color: #2c3e50; border-radius: 50%; z-index: 10; border: 4px solid #34495e; }
+    .stopper { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 15px solid transparent; border-right: 15px solid transparent; border-top: 30px solid #ee9d2b; z-index: 20; filter: drop-shadow(0 2px 2px rgba(0,0,0,0.3)); }
+    .stand-base { width: 120px; height: 20px; background-color: #2c3e50; margin: 0 auto; border-radius: 10px 10px 0 0; }
+    .stand-leg { width: 60px; height: 60px; background-color: #34495e; margin: -15px auto 0; clip-path: polygon(20% 0, 80% 0, 100% 100%, 0% 100%); position: relative; z-index: 0; }
+    .modal { display: none; position: fixed; z-index: 50; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.8); backdrop-filter: blur(5px); align-items: center; justify-content: center; opacity: 0; transition: opacity 0.3s ease; }
+    .modal.show { display: flex; opacity: 1; }
+    .modal-content { background: linear-gradient(135deg, #1e1e1e, #2a2a2a); border: 2px solid #ee9d2b; border-radius: 20px; padding: 30px; text-align: center; width: 90%; max-width: 350px; transform: scale(0.7); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 10px 25px rgba(238, 157, 43, 0.3); }
+    .modal.show .modal-content { transform: scale(1); }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+    .animated-icon { animation: pulse 2s infinite; }
+</style>
+</head>
+<body class="bg-background-dark font-display">
+<div class="relative flex h-auto min-h-screen w-full flex-col dark">
+    <div class="flex items-center p-4">
+        <a href="home.html" class="flex size-12 shrink-0 items-center justify-start text-text-light">
+            <span class="material-symbols-outlined text-3xl">arrow_back</span>
+        </a>
+        <h2 class="flex-1 text-center text-xl font-bold text-text-light">Spin & Win</h2>
+        <div class="flex w-auto items-center justify-end gap-2">
+            <!-- Coin Balance -->
+            <div class="flex items-center gap-2 rounded-full bg-card-dark px-3 py-2">
+                <span class="material-symbols-outlined text-2xl text-primary">toll</span>
+                <span id="coinBalance" class="text-base font-bold text-text-light">0</span>
+            </div>
+            <!-- Wallet Balance -->
+            <div class="flex items-center gap-2 rounded-full bg-card-dark px-3 py-2">
+                <span class="material-symbols-outlined text-2xl text-primary">account_balance_wallet</span>
+                <span id="walletBalance" class="text-base font-bold text-text-light">₹0</span>
+            </div>
+        </div>
+    </div>
+
+    <main class="flex flex-1 flex-col items-center justify-center p-4">
+        <div class="relative mb-6 w-full max-w-lg flex flex-col items-center">
+            <div class="wheel-container">
+                <div class="stopper"></div>
+                <div class="wheel" id="spinWheel">
+                    <div class="wheel-inner" id="wheelInner"></div>
+                </div>
+                <div class="center-hub"></div>
+            </div>
+            <div class="stand-leg"></div>
+            <div class="stand-base"></div>
+        </div>
+
+        <div class="flex w-full max-w-md flex-col items-center gap-4">
+            <div class="flex flex-col items-center gap-2">
+                <div class="flex h-16 w-full items-center justify-center rounded-lg bg-card-dark px-6">
+                    <p id="spinsLeft" class="text-3xl font-bold text-text-light">Loading...</p>
+                </div>
+                <p class="text-sm font-normal text-text-secondary">Spins Left Today</p>
+            </div>
+            <div class="flex w-full flex-col items-stretch gap-4 pt-2">
+                <button id="spinBtn" class="flex h-14 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-gradient-to-r from-orange-500 to-primary px-5 text-lg font-bold text-white w-full hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/30">
+                    <span class="truncate">SPIN NOW</span>
+                </button>
+            </div>
+            
+            <div class="mt-6 flex w-full max-w-[728px] items-center justify-center text-text-secondary">
+                <script type="text/javascript">
+                    atOptions = {
+                        'key' : '8d8ed01dbfb159ca9bb482d1dc52a43b',
+                        'format' : 'iframe',
+                        'height' : 90,
+                        'width' : 728,
+                        'params' : {}
+                    };
+                </script>
+                <script type="text/javascript" src="//www.highperformanceformat.com/8d8ed01dbfb159ca9bb482d1dc52a43b/invoke.js"></script>
+            </div>
+        </div>
+    </main>
+    <footer class="h-4"></footer>
+</div>
+
+<!-- Winner Modal -->
+<div id="winnerModal" class="modal">
+    <div class="modal-content">
+        <div class="flex justify-center mb-4">
+            <span class="material-symbols-outlined text-6xl text-yellow-400 animated-icon">emoji_events</span>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">Congratulations!</h2>
+        <p class="text-text-secondary mb-6">You have won</p>
+        <div class="text-5xl font-extrabold text-primary mb-6 drop-shadow-[0_0_10px_rgba(238,157,43,0.5)]">
+            <span id="winAmount">0</span> <span class="text-2xl">Coins</span>
+        </div>
+        <button onclick="claimReward()" class="w-full py-3 rounded-full bg-primary text-white font-bold text-lg hover:brightness-110 transition-all">
+            CLAIM REWARD
+        </button>
+    </div>
+</div>
+
+<!-- Limit Reached Modal -->
+<div id="limitModal" class="modal">
+    <div class="modal-content">
+        <div class="flex justify-center mb-4">
+            <span class="material-symbols-outlined text-6xl text-primary animated-icon">timer</span>
+        </div>
+        <h2 class="text-2xl font-bold text-white mb-2">Spins Finished!</h2>
+        <p class="text-text-secondary mb-6">You have used all your free spins for today. Please come back tomorrow for more!</p>
+        <button onclick="closeModal('limitModal')" class="w-full py-3 rounded-full bg-primary text-white font-bold text-lg hover:brightness-110 transition-all">
+            OKAY
+        </button>
+    </div>
+</div>
+
+<audio id="spinSound" src="spin_sound.mp3" preload="auto"></audio>
+
+<script>
+    // --- Firebase Configuration ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBQHKJvI_FBqClddSho75Xz6w4vjXbt_w0",
+        authDomain: "spin-and-win-d4217.firebaseapp.com",
+        databaseURL: "https://spin-and-win-d4217-default-rtdb.firebaseio.com",
+        projectId: "spin-and-win-d4217",
+        storageBucket: "spin-and-win-d4217.firebasestorage.app",
+        messagingSenderId: "1000691452468",
+        appId: "1:1000691452468:web:723e6e050faf6423e99861"
+    };
+
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    const database = firebase.database();
+    const userId = localStorage.getItem('loggedInUserId');
+    if (!userId) { window.location.href = "login.html"; }
+
+    let currentRotation = 0;
+    let wonAmount = 0;
+    let spinsToday = 0;
+    const MAX_SPINS = 15;
+    const COIN_TO_BALANCE_RATE = 100; // 100 coins = 1 Rupee
+
+    const spinWheel = document.getElementById('spinWheel');
+    const wheelInner = document.getElementById('wheelInner');
+    const spinBtn = document.getElementById('spinBtn');
+    const spinSound = document.getElementById('spinSound');
+    const coinBalanceEl = document.getElementById('coinBalance');
+    const walletBalanceEl = document.getElementById('walletBalance');
+    const spinsLeftEl = document.getElementById('spinsLeft');
+    const winnerModal = document.getElementById('winnerModal');
+    const limitModal = document.getElementById('limitModal');
+    const winAmountEl = document.getElementById('winAmount');
+
+    const segments = [10, 50, 20, 100, 5, 200, 15, 75, 25];
+    const colors = ['#FF5733', '#33FF57', '#3357FF', '#FF33A1', '#33FFF5', '#F3FF33', '#FF8C33', '#8C33FF', '#FF3333'];
+    const segmentAngle = 360 / segments.length;
+
+    function setupWheel() {
+        let gradientStr = 'conic-gradient(';
+        segments.forEach((seg, index) => {
+            const start = index * segmentAngle;
+            const end = (index + 1) * segmentAngle;
+            gradientStr += `${colors[index]} ${start}deg ${end}deg${index < segments.length - 1 ? ',' : ''}`;
+            const numberEl = document.createElement('div');
+            numberEl.className = 'wheel-number';
+            numberEl.innerText = seg;
+            const midAngle = start + (segmentAngle / 2);
+            numberEl.style.transform = `translate(-50%, -50%) rotate(${midAngle}deg) translate(0, -110px) rotate(-${midAngle}deg)`;
+            wheelInner.appendChild(numberEl);
+        });
+        gradientStr += ')';
+        wheelInner.style.background = gradientStr;
+    }
+
+    function loadUserData() {
+        database.ref(`users/${userId}/Coin`).on('value', (snap) => {
+            coinBalanceEl.innerText = (snap.val() || 0).toLocaleString();
+        });
+        database.ref(`users/${userId}/balance`).on('value', (snap) => {
+            const balance = snap.val() || 0;
+            walletBalanceEl.innerText = `₹${parseFloat(balance).toFixed(2)}`;
+        });
+
+        const today = new Date().toISOString().slice(0, 10);
+        const spinRef = database.ref(`users/${userId}/spins/${today}`);
+        spinRef.on('value', (snap) => {
+            spinsToday = snap.val() || 0;
+            const spinsLeft = MAX_SPINS - spinsToday;
+            spinsLeftEl.innerText = spinsLeft;
+            if (spinsLeft <= 0) {
+                spinBtn.disabled = true;
+                spinBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                spinBtn.querySelector('span').innerText = "LIMIT REACHED";
+            } else {
+                 spinBtn.disabled = false;
+                spinBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                spinBtn.querySelector('span').innerText = "SPIN NOW";
+            }
+        });
+    }
+
+    function startSpin() {
+        if (spinsToday >= MAX_SPINS) {
+            limitModal.classList.add('show');
+            return;
+        }
+
+        spinBtn.disabled = true;
+        spinBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        spinBtn.querySelector('span').innerText = "SPINNING...";
+
+        spinSound.currentTime = 0;
+        spinSound.play().catch(e => console.log("Audio error:", e));
+
+        const randomDegree = Math.floor(Math.random() * 360);
+        const spins = 10 * 360;
+        const totalRotation = currentRotation + spins + randomDegree;
+        currentRotation = totalRotation;
+        spinWheel.style.transform = `rotate(${currentRotation}deg)`;
+
+        setTimeout(() => {
+            calculateWinner(currentRotation);
+        }, 11000);
+    }
+
+    function calculateWinner(rotation) {
+        const actualRotation = rotation % 360;
+        const angleUnderPointer = (360 - actualRotation) % 360;
+        const index = Math.floor(angleUnderPointer / segmentAngle);
+        wonAmount = segments[index];
+        showWinModal(wonAmount);
+    }
+
+    function showWinModal(amount) {
+        winAmountEl.innerText = amount;
+        winnerModal.classList.add('show');
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#ee9d2b', '#ffffff'] });
+    }
+
+    function claimReward() {
+        if (wonAmount > 0) {
+            const today = new Date().toISOString().slice(0, 10);
+            const userRef = database.ref(`users/${userId}`);
+            
+            // Use a transaction to safely update coins and balance
+            userRef.transaction((userData) => {
+                if (userData) {
+                    // Initialize fields if they don't exist
+                    let currentCoins = parseInt(userData.Coin) || 0;
+                    let currentBalance = parseFloat(userData.balance) || 0;
+                    
+                    // Add the newly won coins
+                    currentCoins += wonAmount;
+
+                    // Check if conversion is needed
+                    if (currentCoins >= COIN_TO_BALANCE_RATE) {
+                        const amountToConvert = Math.floor(currentCoins / COIN_TO_BALANCE_RATE);
+                        currentBalance += amountToConvert; // Add 1 Rupee for every 100 coins
+                        currentCoins -= amountToConvert * COIN_TO_BALANCE_RATE; // Deduct the converted coins
+                    }
+
+                    // Update the user data object
+                    userData.Coin = currentCoins;
+                    userData.balance = currentBalance;
+
+                    // Update spin count for today
+                    if (!userData.spins) userData.spins = {};
+                    userData.spins[today] = (userData.spins[today] || 0) + 1;
+                }
+                return userData;
+            }, (error, committed, snapshot) => {
+                if (error) {
+                    alert('Failed to claim reward. Please try again.');
+                } else if (committed) {
+                    wonAmount = 0;
+                    closeModal('winnerModal');
+                }
+            });
+        }
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('show');
+    }
+
+    setupWheel();
+    loadUserData();
+    spinBtn.addEventListener('click', startSpin);
+
+</script>
+
+</body>
+</html>
+```

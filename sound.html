@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spin & Win</title>
+
+    <style>
+        body {
+            text-align: center;
+            background: #f5f5f5;
+            font-family: Arial;
+            padding-top: 40px;
+        }
+
+        #wheel {
+            width: 300px;
+            height: 300px;
+            border: 10px solid #333;
+            border-radius: 50%;
+            margin: auto;
+            background: conic-gradient(
+                #ff7675 0deg 60deg,
+                #55efc4 60deg 120deg,
+                #74b9ff 120deg 180deg,
+                #ffeaa7 180deg 240deg,
+                #fd79a8 240deg 300deg,
+                #a29bfe 300deg 360deg
+            );
+            transition: 5s ease-out;
+        }
+
+        #spinBtn {
+            margin-top: 30px;
+            padding: 12px 30px;
+            background: #0984e3;
+            color: white;
+            font-size: 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        #spinBtn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Spin & Win Wheel</h1>
+
+    <!-- Wheel -->
+    <div id="wheel"></div>
+
+    <!-- Spin Button -->
+    <button id="spinBtn">SPIN</button>
+
+    <!-- Spin Sound -->
+    <audio id="spinSound" src="spin_sound.mp3"></audio>
+
+    <script>
+        let wheel = document.getElementById("wheel");
+        let spinBtn = document.getElementById("spinBtn");
+        let spinSound = document.getElementById("spinSound");
+
+        spinBtn.onclick = function () {
+
+            // Play Spin Sound
+            spinSound.currentTime = 0;
+            spinSound.play();
+
+            // Random Degree (Wheel Rotation)
+            let randomDeg = Math.floor(5000 + Math.random() * 5000);
+
+            // Apply Rotation to Wheel
+            wheel.style.transform = "rotate(" + randomDeg + "deg)";
+        };
+    </script>
+
+</body>
+</html>

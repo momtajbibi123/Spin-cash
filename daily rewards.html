@@ -1,0 +1,332 @@
+
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Daily Bonus</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<!-- Canvas Confetti -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<script>
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#13ec6a",
+              "background-dark": "#0F1A14",
+              "surface-dark": "#193324",
+              "border-dark": "#326747",
+            },
+            fontFamily: {
+              "display": ["Plus Jakarta Sans", "sans-serif"]
+            },
+          },
+        },
+      }
+</script>
+<style>
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    body {
+      min-height: 100dvh;
+      background-color: #0F1A14;
+    }
+    
+    /* UPDATED: Smaller coin size */
+    .gold-coin {
+        width: 40px; height: 40px;
+        background: radial-gradient(ellipse at 30% 30%, #f1fde8 0%, #9ef986 40%, #13ec6a 80%, #0a8a38 100%);
+        border-radius: 50%;
+        box-shadow: 
+            inset 1px 1px 3px rgba(255, 255, 255, 0.6),
+            inset -1px -1px 3px rgba(0, 0, 0, 0.3),
+            0 3px 10px rgba(19, 236, 106, 0.3);
+        display: flex; align-items: center; justify-content: center;
+        position: relative; border: 1.5px solid #9ef986;
+        transform-style: preserve-3d;
+    }
+    
+    .gold-coin::before {
+        content: '🪙'; font-size: 20px;
+        filter: drop-shadow(0 1px 1px rgba(0,0,0,0.4));
+    }
+
+    /* UPDATED: Smaller large coin size */
+    .gold-coin.large { width: 60px; height: 60px; border-width: 2px; }
+    .gold-coin.large::before { font-size: 28px; }
+
+    @keyframes coinFlip { 0% { transform: rotateY(0deg); } 100% { transform: rotateY(360deg); } }
+    .animate-coin { animation: coinFlip 3.5s infinite linear; }
+    
+    @keyframes pulse-border {
+        0% { box-shadow: 0 0 0 0 rgba(19, 236, 106, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(19, 236, 106, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(19, 236, 106, 0); }
+    }
+
+    .premium-box {
+        background: var(--surface-dark);
+        box-shadow: 3px 3px 8px #0a110c, -3px -3px 8px #14271c;
+        transition: all 0.3s ease;
+        border: 1px solid var(--border-dark);
+    }
+    
+    .premium-box.active {
+        border: 2px solid var(--primary);
+        animation: pulse-border 2s infinite;
+        transform: translateY(-4px);
+    }
+
+    .dialog-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.9); backdrop-filter: blur(8px);
+        display: none; justify-content: center; align-items: center;
+        z-index: 50; opacity: 0; transition: opacity 0.3s ease;
+    }
+    .dialog-overlay.open { display: flex; opacity: 1; }
+    .dialog-box {
+        background: linear-gradient(180deg, #193324 0%, #0F1A14 100%);
+        border: 1px solid var(--primary); width: 90%; max-width: 340px;
+        padding: 40px 30px; border-radius: 30px; text-align: center;
+        transform: scale(0.8); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        box-shadow: 0 0 50px rgba(19, 236, 106, 0.3);
+    }
+    .dialog-overlay.open .dialog-box { transform: scale(1); }
+
+    @keyframes bounce-icon { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+    .dialog-icon { animation: bounce-icon 2s infinite ease-in-out; }
+</style>
+</head>
+<body class="bg-background-dark font-display text-white">
+<!-- UPDATED: Added padding-bottom for the fixed footer -->
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden pb-28">
+    
+    <!-- Top App Bar -->
+    <div class="flex items-center p-4 sticky top-0 bg-background-dark z-10 border-b border-border-dark/50">
+        <div class="flex size-12 shrink-0 items-center justify-start cursor-pointer" onclick="window.location.href='home.html'">
+            <span class="material-symbols-outlined text-primary">arrow_back</span>
+        </div>
+        <h1 class="text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Daily Bonus</h1>
+        <div class="flex items-center justify-end space-x-2">
+            <div class="flex w-auto items-center justify-end space-x-2 rounded-full bg-surface-dark px-3 py-1.5 border border-border-dark">
+                <span class="material-symbols-outlined text-primary">monetization_on</span>
+                <p id="header-coins" class="text-white text-base font-bold">0</p>
+            </div>
+            <div class="flex w-auto items-center justify-end space-x-2 rounded-full bg-surface-dark px-3 py-1.5 border border-border-dark">
+                <span class="material-symbols-outlined text-primary">account_balance_wallet</span>
+                <p id="header-balance" class="text-white text-base font-bold">0</p>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="text-white tracking-light text-2xl font-bold leading-tight px-4 text-center pb-3 pt-5">Your 7-Day Streak</h2>
+
+    <div class="mx-4 my-4">
+        <!-- UPDATED: Smaller gap -->
+        <div class="grid grid-cols-3 gap-3" id="bonus-grid">
+            <div class="col-span-3 text-center text-gray-400 py-10">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Win Dialog -->
+<div class="dialog-overlay" id="win-dialog">
+    <div class="dialog-box">
+        <div class="flex justify-center mb-6 dialog-icon">
+            <span class="material-symbols-outlined text-7xl text-primary drop-shadow-[0_0_15px_rgba(19,236,106,0.6)]">redeem</span>
+        </div>
+        <h2 class="text-3xl font-bold text-white mb-2">Daily Reward!</h2>
+        <p class="text-slate-300 mb-6 text-sm">You have successfully claimed</p>
+        <div class="flex items-center justify-center gap-3 mb-8">
+            <div class="gold-coin"></div>
+            <div class="text-5xl font-extrabold text-primary drop-shadow-lg">
+                <span id="dialog-amount">0</span>
+            </div>
+        </div>
+        <button id="claim-btn" class="w-full py-4 rounded-2xl bg-primary text-black font-bold text-lg hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/30">
+            CLAIM REWARD
+        </button>
+    </div>
+</div>
+
+<!-- Adsterra Banner Ad -->
+<footer class="fixed bottom-0 left-0 right-0 w-full flex justify-center p-2 bg-background-dark z-20 border-t border-border-dark/50">
+    <div class="w-full max-w-[728px] flex justify-center">
+        <script type="text/javascript">
+            atOptions = {
+                'key' : '8d8ed01dbfb159ca9bb482d1dc52a43b',
+                'format' : 'iframe',
+                'height' : 90,
+                'width' : 728,
+                'params' : {}
+            };
+        </script>
+        <script type="text/javascript" src="//www.highperformanceformat.com/8d8ed01dbfb159ca9bb482d1dc52a43b/invoke.js"></script>
+    </div>
+</footer>
+
+<audio id="win-sound" src="reward.mp3" preload="auto"></audio>
+<script>
+    // --- Firebase Config ---
+    const firebaseConfig = {
+        apiKey: "AIzaSyBQHKJvI_FBqClddSho75Xz6w4vjXbt_w0",
+        authDomain: "spin-and-win-d4217.firebaseapp.com",
+        databaseURL: "https://spin-and-win-d4217-default-rtdb.firebaseio.com",
+        projectId: "spin-and-win-d4217",
+        storageBucket: "spin-and-win-d4217.firebasestorage.app",
+        messagingSenderId: "1000691452468",
+        appId: "1:1000691452468:web:723e6e050faf6423e99861"
+    };
+
+    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    const database = firebase.database();
+    const userId = localStorage.getItem('loggedInUserId');
+    if (!userId) { window.location.href = "login.html"; }
+
+    const bonusGrid = document.getElementById('bonus-grid');
+    const headerBalance = document.getElementById('header-balance');
+    const headerCoins = document.getElementById('header-coins');
+    const winDialog = document.getElementById('win-dialog');
+    const dialogAmount = document.getElementById('dialog-amount');
+    const claimBtn = document.getElementById('claim-btn');
+    const rewardSound = document.getElementById('reward-sound');
+
+    const dailyRewards = [10, 20, 30, 40, 50, 60, 100];
+    const COIN_TO_BALANCE_RATE = 100; // 100 coins = 1 Rupee
+    let currentDayIndex = 0;
+    let todayAmountInCoins = 0;
+
+    function init() {
+        loadUserData();
+        checkClaimStatus();
+    }
+
+    function loadUserData() {
+        const userRef = database.ref(`users/${userId}`);
+        userRef.on('value', (snap) => {
+            const userData = snap.val() || {};
+            headerBalance.innerText = "₹" + (parseFloat(userData.balance) || 0).toFixed(2);
+            headerCoins.innerText = (userData.Coin || 0).toLocaleString();
+        });
+    }
+    
+    function renderGrid(activeDayIdx, isClaimedToday) {
+        bonusGrid.innerHTML = '';
+        dailyRewards.forEach((amount, index) => {
+            const dayNum = index + 1;
+            const isBigCard = (index === 6);
+            let boxClass = `premium-box ${isBigCard ? 'col-span-3' : ''} flex flex-col items-center gap-1 rounded-2xl p-3 text-center relative overflow-hidden`;
+            let coinClass = isBigCard ? 'gold-coin large' : 'gold-coin';
+            let statusHTML = '';
+
+            if (index < activeDayIdx || (index === activeDayIdx && isClaimedToday)) {
+                boxClass += ' opacity-60 grayscale';
+                statusHTML = `<div class="flex items-center gap-1 text-xs text-green-400 font-bold mt-1"><span class="material-symbols-outlined" style="font-size:14px;">check_circle</span> Claimed</div>`;
+            } 
+            else if (index === activeDayIdx && !isClaimedToday) {
+                todayAmountInCoins = amount;
+                coinClass += ' animate-coin';
+                boxClass += ' active cursor-pointer" onclick="showWinDialog(' + amount + ')"';
+                statusHTML = `<p class="text-xs font-bold text-black bg-primary px-2 py-0.5 rounded-full mt-1 animate-pulse">CLAIM</p>`;
+            } 
+            else {
+                coinClass += ' animate-coin';
+                boxClass += ' opacity-50';
+                statusHTML = `<span class="material-symbols-outlined text-gray-600 text-sm mt-1">lock</span>`;
+            }
+
+            const cardHTML = `
+                <div class="${boxClass}">
+                    <p class="text-xs font-medium text-slate-300">${isBigCard ? 'Day 7 Bonus' : 'Day ' + dayNum}</p>
+                    <div class="${coinClass}"></div>
+                    <p class="text-lg font-extrabold text-primary drop-shadow-md">${amount}</p>
+                    ${statusHTML}
+                </div>
+            `;
+            bonusGrid.innerHTML += cardHTML;
+        });
+    }
+
+    claimBtn.addEventListener('click', () => {
+        const userRef = database.ref(`users/${userId}`);
+        
+        // Use a transaction for safe data updates
+        userRef.transaction((currentUserData) => {
+            if (currentUserData) {
+                // Initialize fields if they don't exist
+                let currentCoins = parseInt(currentUserData.Coin) || 0;
+                let currentBalance = parseFloat(currentUserData.balance) || 0;
+                
+                // Add the newly claimed coins
+                currentCoins += todayAmountInCoins;
+
+                // Check if conversion to balance is needed
+                if (currentCoins >= COIN_TO_BALANCE_RATE) {
+                    const amountToConvert = Math.floor(currentCoins / COIN_TO_BALANCE_RATE);
+                    currentBalance += amountToConvert; // Add 1 Rupee for every 100 coins
+                    currentCoins -= amountToConvert * COIN_TO_BALANCE_RATE; // Deduct the converted coins
+                }
+
+                // Update the user data object
+                currentUserData.Coin = currentCoins;
+                currentUserData.balance = currentBalance;
+
+                // Update daily bonus streak and date
+                const today = new Date().toDateString();
+                if (!currentUserData.dailyBonus) currentUserData.dailyBonus = {};
+                currentUserData.dailyBonus.lastClaimDate = today;
+                currentUserData.dailyBonus.streak = currentDayIndex + 1;
+            }
+            return currentUserData;
+        }, (error, committed, snapshot) => {
+            if (error) {
+                console.error("Claim failed:", error);
+                alert('Transaction failed!');
+            }
+            winDialog.classList.remove('open');
+        });
+    });
+
+
+    function checkClaimStatus() {
+        const dailyRef = database.ref(`users/${userId}/dailyBonus`);
+        dailyRef.on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            const lastDate = data.lastClaimDate;
+            let streak = data.streak || 0;
+            const today = new Date().toDateString();
+            
+            if (lastDate === today) {
+                currentDayIndex = streak >= 1 ? streak - 1 : 0;
+                renderGrid(currentDayIndex, true);
+            } else {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                currentDayIndex = (lastDate === yesterday.toDateString()) ? streak : 0;
+                if(currentDayIndex >= dailyRewards.length) currentDayIndex = 0;
+                renderGrid(currentDayIndex, false);
+            }
+        });
+    }
+
+    function showWinDialog(amount) {
+        dialogAmount.innerText = amount;
+        winDialog.classList.add('open');
+        rewardSound.currentTime = 0;
+        rewardSound.play().catch(e => console.log("Audio error:", e));
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#13ec6a', '#ffffff', '#9ef986'] });
+    }
+
+    init();
+</script>
+</body>
+</html>
