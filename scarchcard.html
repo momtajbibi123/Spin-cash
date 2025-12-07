@@ -1,142 +1,220 @@
 
 <!DOCTYPE html>
-<html class.dark lang="en">
+<html class="dark" lang="en">
 <head>
 <meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Scratch & Win</title>
-<!-- Google Fonts and Icons -->
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
-<!-- Tailwind CSS -->
+<meta content="width=device-width, initial-scale=1.0, user-scalable=no" name="viewport"/>
+<title>Scratch Card Game</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-<!-- Canvas Confetti for celebration effect -->
+
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Spline+Sans:wght@400;500;700;800&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<!-- Canvas Confetti -->
 <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "primary": "#f4af25",
+            "background-dark": "#1a1a1a",
+            "container-dark": "#221c10",
+          },
+          fontFamily: { "display": ["Spline Sans", "sans-serif"] },
+          borderRadius: { "DEFAULT": "1rem", "lg": "1.5rem", "xl": "2rem", "full": "9999px" },
+          animation: { 
+              'bounce-in': 'bounce-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              'float': 'float 3s ease-in-out infinite',
+              'pop': 'pop 0.5s ease-out forwards'
+          },
+          keyframes: {
+              'bounce-in': {
+                  '0%': { transform: 'scale(0.5) translateY(20px)', opacity: '0' },
+                  '70%': { transform: 'scale(1.1) translateY(0)', opacity: '1' },
+                  '100%': { transform: 'scale(1) translateY(0)', opacity: '1' },
+              },
+              'float': {
+                  '0%, 100%': { transform: 'translateY(0)' },
+                  '50%': { transform: 'translateY(-10px)' },
+              },
+              'pop': {
+                  '0%': { transform: 'scale(0.8)', opacity: '0' },
+                  '100%': { transform: 'scale(1)', opacity: '1' },
+              }
+          }
+        },
+      },
+    }
+</script>
 <style>
-    .material-symbols-outlined {
-      font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-    }
-    body {
-      min-height: max(884px, 100dvh);
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .scratch-container {
-        position: relative; width: 100%; max-width: 384px;
-        aspect-ratio: 16 / 10; border-radius: 1rem;
-        overflow: hidden; box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
-        border: 4px solid #333;
+    .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    body { min-height: 100dvh; -webkit-tap-highlight-color: transparent; }
+    
+    .scratch-wrapper {
+        position: relative;
+        width: 100%;
+        max-width: 280px;
+        aspect-ratio: 10 / 13;
+        border-radius: 1.5rem;
+        overflow: hidden;
+        box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.5);
+        margin: 0 auto;
+        border: 4px solid transparent;
+        transition: border-color 0.4s ease;
     }
     .prize-layer {
-        position: absolute; inset: 0; width: 100%; height: 100%;
-        background: radial-gradient(circle, #4a4a4a 0%, #2a2a2a 100%);
+        position: absolute; inset: 0;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        z-index: 1; /* Keep it below canvas */
+        background: #2a2a2a;
+        z-index: 1;
     }
     #scratch-canvas {
-        position: absolute; inset: 0; width: 100%; height: 100%;
-        z-index: 2; /* Keep it on top */
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
         cursor: grabbing; touch-action: none;
+        z-index: 2;
     }
-    .dialog-overlay {
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
-        display: none; justify-content: center; align-items: center;
-        z-index: 50; opacity: 0; transition: opacity 0.3s ease;
+    
+    /* Popup Styles */
+    .popup-overlay {
+        transition: opacity 0.3s ease;
+        z-index: 50;
     }
-    .dialog-overlay.open { display: flex; opacity: 1; }
-    .dialog-box {
-        background: linear-gradient(145deg, #2a2a2a, #1e1e1e);
-        border: 1px solid #444; width: 90%; max-width: 340px;
-        padding: 40px 30px; border-radius: 24px; text-align: center;
-        transform: scale(0.8); transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-        box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+    .popup-box {
+        background: radial-gradient(circle at 50% 0%, #3a301c 0%, #1a1a1a 80%);
+        box-shadow: 0 0 0 1px rgba(244, 175, 37, 0.3), 0 25px 60px -10px rgba(0,0,0,0.8);
+        position: relative;
+        transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-    .dialog-overlay.open .dialog-box { transform: scale(1); }
-    @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { translateY(0px); } }
-    .trophy-icon {
-        animation: float 3s ease-in-out infinite;
-        filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5));
+    .popup-overlay:not(.open) { opacity: 0; pointer-events: none; }
+    .popup-overlay:not(.open) .popup-box { transform: scale(0.8); }
+    
+    /* HD Gold Coin Style */
+    .gold-coin {
+        width: 45px; height: 45px;
+        background: radial-gradient(ellipse at 30% 30%, #fff9c4 0%, #ffd700 40%, #ff8f00 80%, #bf360c 100%);
+        border-radius: 50%;
+        box-shadow: inset 2px 2px 5px rgba(255, 255, 255, 0.8), inset -2px -2px 5px rgba(0, 0, 0, 0.4), 0 5px 15px rgba(0,0,0,0.3);
+        display: flex; align-items: center; justify-content: center;
+        border: 2px solid #ffe57f;
+        position: relative;
+    }
+    .gold-coin::before {
+        content: '₹'; font-size: 24px; font-weight: 900; color: #fff;
+        text-shadow: 0px -1px 0px rgba(184, 134, 11, 0.9);
     }
 </style>
 </head>
-<body class="bg-[#121212] font-display text-[#F5F5F5]">
-<div class="mx-auto max-w-sm h-dvh flex flex-col p-4 text-gray-200">
-    <header class="flex justify-between items-center mb-8">
-        <button class="text-white" onclick="window.location.href='home.html'">
-            <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0, 'wght' 300;">arrow_back</span>
-        </button>
-        <h1 class="text-xl font-bold text-white flex-1 text-center">Scratch & Win</h1>
-        <div class="flex items-center space-x-2">
-            <div class="flex items-center bg-gray-800 rounded-full px-3 py-1.5 border border-gray-700">
-                <span class="material-symbols-outlined text-yellow-400 text-base leading-none">monetization_on</span>
-                <span id="header-coins" class="text-sm font-semibold ml-1 text-white">0</span>
+<body class="font-display bg-background-dark text-white">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root overflow-x-hidden max-w-sm mx-auto">
+    
+    <!-- Header -->
+    <div class="sticky top-0 z-10 bg-background-dark/80 backdrop-blur-md border-b border-white/5">
+        <div class="flex items-center p-4 justify-between">
+            <div class="flex size-10 shrink-0 items-center justify-center cursor-pointer" onclick="window.location.href='home.html'">
+                <span class="material-symbols-outlined text-white/90 text-2xl">arrow_back_ios_new</span>
             </div>
-            <div class="flex items-center bg-gray-800 rounded-full px-3 py-1.5 border border-gray-700">
-                <span class="material-symbols-outlined text-green-400 text-base leading-none">account_balance_wallet</span>
-                <span id="header-balance" class="text-sm font-semibold ml-1 text-white">₹0</span>
+            
+            <!-- Stats Container -->
+            <div class="flex items-center gap-3">
+                <!-- Coin Box -->
+                <div class="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 border border-white/10">
+                    <span class="material-symbols-outlined text-yellow-400 text-xl">monetization_on</span>
+                    <p id="coin-box" class="text-white text-base font-bold">0</p>
+                </div>
+
+                <!-- Wallet Box -->
+                <div class="flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 border border-white/10">
+                    <span class="material-symbols-outlined text-primary text-xl">account_balance_wallet</span>
+                    <p id="wallet-balance" class="text-white text-base font-bold">₹0.00</p>
+                </div>
             </div>
         </div>
-    </header>
+    </div>
 
-    <main class="flex-grow flex flex-col items-center">
-        <div class="scratch-container w-full">
-            <div class="prize-layer">
-                <h3 id="prize-amount" class="text-yellow-400 text-6xl font-extrabold drop-shadow-lg">...</h3>
-                <p class="text-white/80 text-lg mt-2 font-medium">Coins</p>
-            </div>
-            <canvas id="scratch-canvas"></canvas>
-        </div>
-
-        <p class="mt-6 text-gray-400">Scratch the card to reveal your prize!</p>
-
-        <div class="w-full mt-8 p-6 bg-gray-800/50 rounded-2xl border border-gray-700/50">
-            <h2 class="text-center font-medium mb-4 text-gray-300">Choose Card Theme</h2>
-            <div class="flex justify-center space-x-4">
-                <button class="theme-btn p-1 border-2 border-yellow-400 rounded-lg ring-4 ring-yellow-400/20 transition-all" onclick="changeTheme(0)">
-                    <img class="w-16 h-12 object-cover rounded-md" src="https://img.freepik.com/free-vector/dark-golden-template-design_1017-33457.jpg?w=740" alt="Gold Theme"/>
-                </button>
-                <button class="theme-btn p-1 border-2 border-transparent rounded-lg transition-all" onclick="changeTheme(1)">
-                    <img class="w-16 h-12 object-cover rounded-md" src="https://img.freepik.com/free-vector/elegant-splatter-background-with-silver-details_52683-45520.jpg?w=740" alt="Silver Theme"/>
-                </button>
-                <button class="theme-btn p-1 border-2 border-transparent rounded-lg transition-all" onclick="changeTheme(2)">
-                    <img class="w-16 h-12 object-cover rounded-md" src="https://img.freepik.com/free-vector/realistic-holographic-background_23-2148963979.jpg?w=740" alt="Holographic Theme"/>
-                </button>
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col justify-between p-4">
+        <div class="relative flex w-full justify-center py-4">
+            <div class="scratch-wrapper">
+                <div class="prize-layer">
+                    <h3 id="prize-amount" class="text-primary text-7xl font-extrabold tracking-tight drop-shadow-lg"></h3>
+                </div>
+                <canvas id="scratch-canvas"></canvas>
             </div>
         </div>
+
+        <!-- Theme Selector -->
+        <div class="flex flex-col gap-4 bg-white/5 p-4 rounded-2xl border border-white/5">
+            <p class="text-white/70 text-sm font-medium text-center">Choose Card Theme</p>
+            <div class="grid grid-cols-3 gap-3">
+                <label class="flex flex-col cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-black/40 p-2 gap-2 ring-2 ring-primary bg-primary/10 transition-all duration-300">
+                    <div class="size-10 rounded-full bg-primary/20 flex items-center justify-center"><span class="material-symbols-outlined text-primary">star</span></div>
+                    <input class="sr-only" name="theme-selector" type="radio" value="0" checked/>
+                </label>
+                <label class="flex flex-col cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-black/40 p-2 gap-2 ring-2 ring-transparent has-[:checked]:ring-primary has-[:checked]:bg-primary/10 transition-all duration-300">
+                    <div class="size-10 rounded-full bg-primary/20 flex items-center justify-center"><span class="material-symbols-outlined text-primary">diamond</span></div>
+                    <input class="sr-only" name="theme-selector" type="radio" value="1"/>
+                </label>
+                <label class="flex flex-col cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-black/40 p-2 gap-2 ring-2 ring-transparent has-[:checked]:ring-primary has-[:checked]:bg-primary/10 transition-all duration-300">
+                    <div class="size-10 rounded-full bg-primary/20 flex items-center justify-center"><span class="material-symbols-outlined text-primary">rocket_launch</span></div>
+                    <input class="sr-only" name="theme-selector" type="radio" value="2"/>
+                </label>
+            </div>
+        </div>
+
+        <!-- ADSTERRA BANNER AD -->
+        <div class="flex justify-center items-center w-full my-4 overflow-hidden rounded-xl">
+            <script type="text/javascript">
+                atOptions = {
+                    'key' : '8d8ed01dbfb159ca9bb482d1dc52a43b',
+                    'format' : 'iframe',
+                    'height' : 90,
+                    'width' : 728,
+                    'params' : {}
+                };
+            </script>
+            <script type="text/javascript" src="//www.highperformanceformat.com/8d8ed01dbfb159ca9bb482d1dc52a43b/invoke.js"></script>
+        </div>
+        <!-- END ADSTERRA -->
+
     </main>
 
-    <footer class="mt-auto pt-4">
-        <div class="w-full h-[90px] bg-gray-800 rounded-lg flex justify-center items-center overflow-hidden">
-            <!-- Ad space -->
-        </div>
-    </footer>
-</div>
+    <!-- Premium Popup -->
+    <div id="popup" class="popup-overlay absolute inset-0 flex items-center justify-center p-6 bg-black/80 backdrop-blur-sm">
+        <div class="popup-box flex flex-col items-center gap-2 rounded-3xl p-8 w-full max-w-xs text-center border border-primary/30">
+            
+            <!-- 1. Icon (Animated) -->
+            <div class="animate-bounce-in mb-2">
+                <span class="material-symbols-outlined text-7xl text-primary drop-shadow-[0_0_15px_rgba(244,175,37,0.6)] animate-float">emoji_events</span>
+            </div>
 
-<!-- Win Dialog -->
-<div class="dialog-overlay" id="win-dialog">
-    <div class="dialog-box relative overflow-hidden">
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full h-32 bg-yellow-400/20 blur-3xl -z-10"></div>
-        <div class="flex justify-center mb-6">
-            <svg class="trophy-icon w-24 h-24" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill="#FFD700" d="M400 64h-48V48c0-26.5-21.5-48-48-48H208c-26.5 0-48 21.5-48 48v16h-48C36.6 64 0 100.6 0 144c0 38.2 27.6 70.3 64 78.4V256c0 61.9 50.1 112 112 112h160c61.9 0 112-50.1 112-112v-33.6c36.4-8.1 64-40.2 64-78.4 0-43.4-36.6-80-80-80zM64 144c0-8.8 7.2-16 16-16h32v64H80c-8.8 0-16-7.2-16-16v-32zm384 32c0 8.8-7.2 16-16 16h-32v-64h32c8.8 0 16 7.2 16 16v32zM192 48c0-8.8 7.2-16 16-16h96c8.8 0 16 7.2 16 16v16h-128V48zm192 208c0 26.5-21.5 48-48 48H176c-26.5 0-48-21.5-48-48v-80h256v80z"/><path fill="#F4C430" d="M256 384c-8.8 0-16 7.2-16 16v48h-48c-8.8 0-16 7.2-16 16v32c0 8.8 7.2 16 16 16h128c8.8 0 16-7.2 16-16v-32c0-8.8-7.2-16-16-16h-48v-48c0-8.8-7.2-16-16-16z"/></svg>
+            <!-- 2. Text (Animated) -->
+            <div class="animate-pop" style="animation-delay: 0.2s;">
+                <h3 class="text-white text-3xl font-bold tracking-tight">Congratulations!</h3>
+                <p class="text-white/60 text-sm mt-1">You've scratched and won</p>
+            </div>
+
+            <!-- 3. Coin & Amount (Animated) -->
+            <div class="flex items-center gap-3 mt-6 bg-black/40 px-6 py-3 rounded-2xl border border-white/10 animate-pop" style="animation-delay: 0.4s;">
+                <div class="gold-coin"></div>
+                <span id="popup-amount" class="text-4xl font-black text-primary drop-shadow-md">0</span>
+            </div>
+
         </div>
-        <h2 class="text-3xl font-bold text-white mb-2">You Won!</h2>
-        <div class="text-5xl font-extrabold text-yellow-400 mb-8 drop-shadow-lg">
-            <span id="dialog-amount">0</span> <span class="text-2xl text-white/90">Coins</span>
-        </div>
-        <p class="text-gray-400 mb-6 text-sm">Reward added to your wallet.</p>
     </div>
 </div>
 
+<!-- Audio -->
 <audio id="win-sound" src="reward.mp3" preload="auto"></audio>
 
 <script>
-    // --- Firebase Configuration ---
+    // --- Firebase Config ---
     const firebaseConfig = {
         apiKey: "AIzaSyBQHKJvI_FBqClddSho75Xz6w4vjXbt_w0",
         authDomain: "spin-and-win-d4217.firebaseapp.com",
@@ -147,81 +225,96 @@
         appId: "1:1000691452468:web:723e6e050faf6423e99861"
     };
 
-    if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
     const database = firebase.database();
     const userId = localStorage.getItem('loggedInUserId');
 
     // --- DOM Elements ---
     const canvas = document.getElementById('scratch-canvas');
     const ctx = canvas.getContext('2d');
+    const scratchWrapper = document.querySelector('.scratch-wrapper');
     const prizeAmountEl = document.getElementById('prize-amount');
-    const headerCoinsEl = document.getElementById('header-coins');
-    const headerBalanceEl = document.getElementById('header-balance');
-    const winDialog = document.getElementById('win-dialog');
-    const dialogAmountEl = document.getElementById('dialog-amount');
-    const themeBtns = document.querySelectorAll('.theme-btn');
+    
+    // Header Elements
+    const coinBoxEl = document.getElementById('coin-box');
+    const walletBalanceEl = document.getElementById('wallet-balance');
+    
+    const popup = document.getElementById('popup');
+    const popupAmount = document.getElementById('popup-amount');
+    const themeSelectors = document.querySelectorAll('input[name="theme-selector"]');
     const winSound = document.getElementById('win-sound');
 
+    // --- State Variables ---
     let isDrawing = false;
     let isRevealed = false;
     let winAmount = 0;
-    const coinsNeededForOneRupee = 100;
+    let audioInitialized = false;
+    const COINS_PER_RUPEE = 100;
 
     const themes = [
-        "https://img.freepik.com/free-vector/dark-golden-template-design_1017-33457.jpg?w=740",
-        "https://img.freepik.com/free-vector/elegant-splatter-background-with-silver-details_52683-45520.jpg?w=740",
-        "https://img.freepik.com/free-vector/realistic-holographic-background_23-2148963979.jpg?w=740"
+        { src: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop", borderColor: "#f4af25" },
+        { src: "https://images.unsplash.com/photo-1531685250784-7569952593d2?q=80&w=1000&auto=format&fit=crop", borderColor: "#60a5fa" },
+        { src: "https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?q=80&w=1000&auto=format&fit=crop", borderColor: "#a855f7" }
     ];
     let currentThemeImg = new Image();
     currentThemeImg.crossOrigin = "Anonymous";
 
+    // --- Functions ---
     function init() {
-        if (!userId) { window.location.href = 'login.html'; }
         loadUserData();
         generatePrize();
-        changeTheme(0);
+        setupTheme();
         addEventListeners();
     }
 
+    // Load User Data from Firebase (Realtime)
     function loadUserData() {
-        if (!userId) return;
-        database.ref(`users/${userId}`).on('value', (snapshot) => {
-            const userData = snapshot.val() || { Coin: 0, balance: 0 };
-            headerCoinsEl.innerText = userData.Coin || 0;
-            headerBalanceEl.innerText = "₹" + (parseFloat(userData.balance) || 0).toFixed(2);
+        if(!userId) {
+            coinBoxEl.textContent = "0";
+            walletBalanceEl.textContent = "₹0.00";
+            return;
+        }
+
+        // Listen for Wallet Balance (users/{userId}/balance)
+        database.ref(`users/${userId}/balance`).on('value', (snap) => {
+            const balance = snap.val() || 0;
+            walletBalanceEl.textContent = `₹${balance.toFixed(2)}`;
+        });
+
+        // Listen for Coins (users/{userId}/Coin)
+        database.ref(`users/${userId}/Coin`).on('value', (snap) => {
+            const coins = snap.val() || 0;
+            coinBoxEl.textContent = coins;
         });
     }
 
     function generatePrize() {
-        winAmount = Math.floor(Math.random() * 11);
-        prizeAmountEl.innerText = winAmount;
+        winAmount = Math.floor(Math.random() * 91) + 10; // Win between 10 and 100 coins
+        prizeAmountEl.textContent = '';
+    }
+
+    function setupTheme() {
+        const selectedThemeIndex = document.querySelector('input[name="theme-selector"]:checked').value;
+        const selectedTheme = themes[selectedThemeIndex];
+        currentThemeImg.src = selectedTheme.src;
+        currentThemeImg.onload = setupCanvas;
+        scratchWrapper.style.borderColor = selectedTheme.borderColor;
     }
 
     function setupCanvas() {
-        const container = document.querySelector('.scratch-container');
+        const container = canvas.parentElement;
         const dpr = window.devicePixelRatio || 1;
         canvas.width = container.offsetWidth * dpr;
         canvas.height = container.offsetHeight * dpr;
-        canvas.style.width = `${container.offsetWidth}px`;
-        canvas.style.height = `${container.offsetHeight}px`;
         ctx.scale(dpr, dpr);
         ctx.globalCompositeOperation = 'source-over';
         ctx.drawImage(currentThemeImg, 0, 0, container.offsetWidth, container.offsetHeight);
         ctx.globalCompositeOperation = 'destination-out';
     }
 
-    window.changeTheme = function(index) {
-        if (isRevealed) return;
-        currentThemeImg.src = themes[index];
-        currentThemeImg.onload = setupCanvas;
-        themeBtns.forEach((btn, i) => {
-            btn.classList.toggle('border-yellow-400', i === index);
-            btn.classList.toggle('ring-4', i === index);
-            btn.classList.toggle('ring-yellow-400/20', i === index);
-            btn.classList.toggle('border-transparent', i !== index);
-        });
-    }
-    
     function getScratchPosition(e) {
         const rect = canvas.getBoundingClientRect();
         const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -234,11 +327,11 @@
         e.preventDefault();
         const pos = getScratchPosition(e);
         ctx.beginPath();
-        ctx.arc(pos.x, pos.y, 25, 0, Math.PI * 2);
+        ctx.arc(pos.x, pos.y, 30, 0, Math.PI * 2);
         ctx.fill();
         checkScratchPercentage();
     }
-    
+
     let checkTimeout;
     function checkScratchPercentage() {
         clearTimeout(checkTimeout);
@@ -247,81 +340,98 @@
             const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             let transparentPixels = 0;
             for (let i = 3; i < imageData.data.length; i += 32) {
-                if (imageData.data[i] === 0) transparentPixels++;
+                if (imageData.data[i] < 128) transparentPixels++;
             }
             const percentage = (transparentPixels / (imageData.data.length / 32)) * 100;
-            
-            if (percentage > 30) { // Reveal after 30% is scratched
-                revealCard();
-            }
+            if (percentage > 45) revealCard();
         }, 100);
     }
 
     function revealCard() {
         if (isRevealed) return;
         isRevealed = true;
-        
-        canvas.style.transition = 'opacity 0.7s ease-out';
+        prizeAmountEl.textContent = winAmount;
+        canvas.style.transition = 'opacity 0.5s ease-out';
         canvas.style.opacity = '0';
+        setTimeout(showPopup, 400);
+    }
+
+    function showPopup() {
+        popupAmount.textContent = winAmount;
+        popup.classList.add('open');
         
-        setTimeout(() => {
-            showWinDialog();
-        }, 500);
+        if (audioInitialized) {
+            winSound.currentTime = 0;
+            winSound.play().catch(e => console.error("Audio play failed:", e));
+        }
+        
+        confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 }, colors: ['#f4af25', '#ffffff', '#f8d27e']});
+        
+        // Update Firebase Data
+        updateUserWallet();
+        
+        setTimeout(resetGame, 3000);
     }
 
-    function showWinDialog() {
-        dialogAmountEl.innerText = winAmount;
-        winDialog.classList.add('open');
-        winSound.currentTime = 0;
-        winSound.play().catch(e => console.error("Audio play failed:", e));
-        confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 }, colors: ['#FFD700', '#ffffff', '#FFA500']});
-        updateDatabaseWithWin();
-        setTimeout(closeDialogAndReset, 3000);
-    }
+    function updateUserWallet() {
+        if (!userId) return;
 
-    function updateDatabaseWithWin() {
-        if (!userId || winAmount === 0) return;
+        // Transaction on the User Node to handle both Coin and Balance atomically
         const userRef = database.ref(`users/${userId}`);
-        userRef.transaction((currentUserData) => {
-            if (currentUserData) {
-                let currentCoins = parseInt(currentUserData.Coin || 0);
-                let currentBalance = parseFloat(currentUserData.balance || 0);
-                currentCoins += winAmount;
-                if (currentCoins >= coinsNeededForOneRupee) {
-                    const rupeesToAdd = Math.floor(currentCoins / coinsNeededForOneRupee);
-                    currentBalance += rupeesToAdd;
-                    currentCoins %= coinsNeededForOneRupee;
-                }
-                currentUserData.Coin = currentCoins;
-                currentUserData.balance = currentBalance;
+        
+        userRef.transaction((user) => {
+            if (!user) {
+                // If user data doesn't exist, initialize it
+                user = { balance: 0, Coin: 0 };
             }
-            return currentUserData;
+            
+            // 1. Add won coins
+            user.Coin = (user.Coin || 0) + winAmount;
+
+            // 2. Check for conversion (100 Coins = 1 Rupee)
+            if (user.Coin >= COINS_PER_RUPEE) {
+                const rupeesToAdd = Math.floor(user.Coin / COINS_PER_RUPEE);
+                user.balance = (user.balance || 0) + rupeesToAdd;
+                user.Coin = user.Coin % COINS_PER_RUPEE; // Keep remainder
+            }
+
+            return user;
         });
     }
 
-    function closeDialogAndReset() {
-        winDialog.classList.remove('open');
+    function resetGame() {
+        popup.classList.remove('open');
         setTimeout(() => {
             isRevealed = false;
-            canvas.style.display = 'block';
-            canvas.style.opacity = '1';
             canvas.style.transition = 'none';
+            canvas.style.opacity = '1';
             generatePrize();
             setupCanvas();
         }, 500);
     }
 
     function addEventListeners() {
-        const startScratching = (e) => { isDrawing = true; scratch(e); };
+        const startScratching = (e) => {
+            if (!audioInitialized) {
+                winSound.play().then(() => {
+                    winSound.pause();
+                    winSound.currentTime = 0;
+                }).catch(() => {});
+                audioInitialized = true;
+            }
+            isDrawing = true; 
+            scratch(e); 
+        };
         const stopScratching = () => { isDrawing = false; };
+        
         canvas.addEventListener('mousedown', startScratching);
         canvas.addEventListener('mousemove', scratch);
-        canvas.addEventListener('mouseup', stopScratching);
-        canvas.addEventListener('mouseleave', stopScratching);
+        window.addEventListener('mouseup', stopScratching);
         canvas.addEventListener('touchstart', startScratching, { passive: false });
         canvas.addEventListener('touchmove', scratch, { passive: false });
-        canvas.addEventListener('touchend', stopScratching);
-        canvas.addEventListener('touchcancel', stopScratching);
+        window.addEventListener('touchend', stopScratching);
+        
+        themeSelectors.forEach(radio => radio.addEventListener('change', setupTheme));
         window.addEventListener('resize', () => { if (!isRevealed) setupCanvas(); });
     }
 
